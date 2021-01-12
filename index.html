@@ -1,0 +1,40 @@
+<div>
+  <label for=reactradio>React</label>
+  <input type=radio name=reactradio id=reactradioid checked>
+  <label for=preactradio>Preact</label>
+  <input type=radio name=preactradio id=preactradioid>
+</div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const library = urlParams.get('library');
+if (library === 'preact') {
+  reactradioid.checked = false;
+  preactradioid.checked = true;
+}
+reactradioid.onclick = () => {
+  window.location.search = '?library=react';
+};
+preactradioid.onclick = () => {
+  window.location.search = '?library=preact';
+};
+
+function loadScript(src) {
+  const script = document.createElement('script');
+  script.src = src;
+  script.type = "text/javascript";
+  script.async = false;
+  document.getElementsByTagName('head')[0].appendChild(script);
+}
+if (preactradioid.checked) {
+  loadScript('node_modules/preact/dist/preact.umd.js');
+  console.log('window.preact: ' + window.preact);
+} else {
+  loadScript('node_modules/react/umd/react.development.js');
+  loadScript('node_modules/react-dom/umd/react-dom.development.js');
+}
+
+loadScript('build/script.js');
+</script>
+
+

@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "build": "babel -w --presets=@babel/preset-react script.jsx --out-file build/script.js"
+  },
+  "dependencies": {
+    "@babel/cli": "^7.12.10",
+    "@babel/core": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "@babel/preset-react": "^7.12.10",
+    "preact": "^10.5.9",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1"
+  }
+}
