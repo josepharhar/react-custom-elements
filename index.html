@@ -1,8 +1,16 @@
 <div>
-  <label for=reactradio>React</label>
-  <input type=radio name=reactradio id=reactradioid checked>
-  <label for=preactradio>Preact</label>
-  <input type=radio name=preactradio id=preactradioid>
+  <div>
+    <input type=radio name=reactradio id=reactradioid checked>
+    <label for=reactradio>React</label>
+  </div>
+  <div>
+    <input type=radio name=reactpatchedradio id=reactpatchedradioid>
+    <label for=reactpatchedradio>React with patch</label>
+  </div>
+  <div>
+    <input type=radio name=preactradio id=preactradioid>
+    <label for=preactradio>Preact</label>
+  </div>
 </div>
 
 <script>
@@ -10,10 +18,22 @@ const urlParams = new URLSearchParams(window.location.search);
 const library = urlParams.get('library');
 if (library === 'preact') {
   reactradioid.checked = false;
+  reactpatchedradioid.checked = false;
   preactradioid.checked = true;
+} else if (library === 'reactpatched') {
+  reactradioid.checked = false;
+  reactpatchedradioid.checked = true;
+  preactradioid.checked = false;
+} else {
+  reactradioid.checked = true;
+  reactpatchedradioid.checked = false;
+  preactradioid.checked = false;
 }
 reactradioid.onclick = () => {
   window.location.search = '?library=react';
+};
+reactpatchedradioid.onclick = () => {
+  window.location.search = '?library=reactpatched';
 };
 preactradioid.onclick = () => {
   window.location.search = '?library=preact';
@@ -28,7 +48,9 @@ function loadScript(src) {
 }
 if (preactradioid.checked) {
   loadScript('node_modules/preact/dist/preact.umd.js');
-  console.log('window.preact: ' + window.preact);
+} else if (reactpatchedradioid.checked) {
+  loadScript('node_modules/react-patched/umd/react.development.js');
+  loadScript('node_modules/react-dom-patched/umd/react-dom.development.js');
 } else {
   loadScript('node_modules/react/umd/react.development.js');
   loadScript('node_modules/react-dom/umd/react-dom.development.js');
@@ -36,5 +58,3 @@ if (preactradioid.checked) {
 
 loadScript('build/script.js');
 </script>
-
-
