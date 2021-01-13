@@ -1,38 +1,32 @@
 /** @jsx h */
 
-let isPreact = null;
-if (window.preact) {
-  isPreact = true;
-} else if (window.React && window.ReactDOM) {
-  isPreact = false;
-} else {
-  alert('unable to find window.preact or window.React && window.ReactDOM');
+const style = document.createElement('style');
+document.body.appendChild(style);
+style.textContent = `
+table, td {
+  border: 1px solid #333;
 }
-
-window.h = isPreact ? preact.createElement : React.createElement;
-//window.renderToString = isPreact ? preactRenderToString : ReactDOMServer.renderToString;
-window.renderToString = input => {
-  const renderToString = isPreact ? preactRenderToString : ReactDOMServer.renderToString;
-  const output = renderToString(input);
-  return output.replace(` data-reactroot=""`, '');
-};
-
-let Component;
-if (window.React) {
-  Component = React.Component;
-} else if (window.preact) {
-  Component = preact.Component;
-} else {
-  alert('React and preact not found');
+thead, tfoot {
+  background-color: #333;
+  color: #fff;
 }
+.code {
+  background-color: lightgray;
+  white-space: pre;
+  font-family: monospace;
+}
+`;
+
+const table = document.createElement('table');
+document.body.appendChild(table);
+table.insertAdjacentHTML('beforeend',
+  `<thead><tr><td></td><td>React</td><td>React Patched</td><td>Preact</td>`);
+const tbody = document.createElement('tbody');
+table.appendChild(tbody);
 
 class MyCustomElement extends HTMLElement {
   constructor() {
     super();
-    /*const host = this.attachShadow({mode: 'open'});
-    const div = document.createElement('div');
-    div.textContent = 'hello from MyCustomElement';
-    host.appendChild(div);*/
   }
 
   get booleanPropWithSetter() { return this._booleanPropWithSetter; }
@@ -49,32 +43,17 @@ class MyCustomElement extends HTMLElement {
 }
 customElements.define('my-custom-element', MyCustomElement);
 
-class ReactComponent extends Component {
+const reactStableRoot = document.createElement('div');
+const reactPatchedRoot = document.createElement('div');
+const preactRoot = document.createElement('div');
+
+/*class ReactComponent extends Component {
   constructor() {
     super();
   }
   render() {
     return (
       <div>
-        <my-custom-element
-          id="proptypesandsetters"
-          booleanPropWithSetter={true}
-          stringPropWithSetter="string"
-          arrayPropWithSetter={['one', 'two']}
-          objectPropWithSetter={{property:'value'}}
-          booleanPropWithoutSetter={true}
-          stringPropWithoutSetter="string"
-          arrayPropWithoutSetter={['one', 'two']}
-          objectPropWithoutSetter={{property:'value'}}
-        />
-        <my-custom-element
-          id="ceclassname"
-          className="className"
-        />
-        <my-custom-element
-          id="ceclass"
-          class="class"
-        />
         <my-custom-element
           id="ceevents"
           onstringprop="string"
@@ -103,7 +82,6 @@ const style = document.createElement('style');
 document.head.appendChild(style);
 style.textContent = `
 h4 {
-  /*margin: 0;*/
   margin-bottom: 0;
 }
 .code {
@@ -112,17 +90,6 @@ h4 {
   font-family: monospace;
   display: inline-block;
 }
-/*.flex-container {
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: column;
-}
-.flex-container > div {
-  margin-right: 15px;
-  margin-bottom: 15px;
-  border: 1px solid black;
-  width: 100px;
-}*/
 `;
 
 const flexContainer = document.createElement('div');
@@ -130,58 +97,117 @@ flexContainer.classList.add('flex-container');
 document.body.appendChild(flexContainer);
 
 // does assigning a jsx attribute without a property setter in the custom element set an attribute? what does it do for each variable type?
-const proptypesandsetters = document.getElementById('proptypesandsetters');
+const proptypesandsetters = document.getElementById('proptypesandsetters');*/
 
-['booleanPropWithSetter',
-  'stringPropWithSetter',
-  'arrayPropWithSetter',
-  'objectPropWithSetter',
-  'booleanPropWithoutSetter',
-  'stringPropWithoutSetter',
-  'arrayPropWithoutSetter',
-  'objectPropWithoutSetter'].forEach(prop => {
-    const div = document.createElement('div');
-    flexContainer.appendChild(div);
+function renderAllFrameworks(jsxfn) {
+  const str = jsxfn.toString().replace('function () {', '').replace(/}$/, '');
 
-    div.insertAdjacentHTML('beforeend',
-      `<h4>${prop}</h4>`);
+  window.h = ReactStable.createElement;
+  const reactStable = document.createElement('div');
+  ReactDOMStable.render(eval(str), reactStable);
 
-    const propStr = JSON.stringify(proptypesandsetters[prop]);
-    div.insertAdjacentHTML('beforeend',
-      `<div>prop: <span class=code>${propStr}</span></div>`);
+  window.h = ReactPatched.createElement;
+  const reactPatched = document.createElement('div');
+  ReactDOMPatched.render(eval(str), reactPatched);
 
-    const attr = JSON.stringify(proptypesandsetters.getAttribute(prop));
-    div.insertAdjacentHTML('beforeend',
-      `<div>attr: <span class=code>${attr}</span></div>`);
-});
+  window.h = preact.createElement;
+  const preactDiv = document.createElement('div');
+  preact.render(eval(str), preactDiv);
 
-[{id: 'ceclassname', title: 'className prop'},
-  {id: 'ceclass', title: 'class prop'}].forEach(({id, title}) => {
-    const element = document.getElementById(id);
-    const div = document.createElement('div');
-    flexContainer.appendChild(div);
+  window.h = undefined;
 
-    div.insertAdjacentHTML('beforeend',
-      `<h4>${title}</h4>`);
+  return [
+    reactStable.querySelector('my-custom-element'),
+    reactPatched.querySelector('my-custom-element'),
+    preactDiv.querySelector('my-custom-element')
+  ];
+}
 
-    const classNameProp = JSON.stringify(element['className']);
-    const classNameAttr = JSON.stringify(element.getAttribute('className'));
-    div.insertAdjacentHTML('beforeend',
-      `<div>className prop: <span class=code>${classNameProp}</span></div>`);
-    div.insertAdjacentHTML('beforeend',
-      `<div>className attr: <span class=code>${classNameAttr}</span></div>`);
+{
+  const [stable, patched, preact] = renderAllFrameworks(
+    function() {<my-custom-element
+      booleanPropWithSetter={true}
+      stringPropWithSetter="string"
+      arrayPropWithSetter={['one', 'two']}
+      objectPropWithSetter={{property:'value'}}
+      booleanPropWithoutSetter={true}
+      stringPropWithoutSetter="string"
+      arrayPropWithoutSetter={['one', 'two']}
+      objectPropWithoutSetter={{property:'value'}}
+    />});
 
-    const classProp = JSON.stringify(element['class']);
-    const classAttr = JSON.stringify(element.getAttribute('class'));
-    div.insertAdjacentHTML('beforeend',
-      `<div>class prop: <span class=code>${classProp}</span></div>`);
-    div.insertAdjacentHTML('beforeend',
-      `<div>class attr: <span class=code>${classAttr}</span></div>`);
-});
+  ['booleanPropWithSetter',
+    'stringPropWithSetter',
+    'arrayPropWithSetter',
+    'objectPropWithSetter',
+    'booleanPropWithoutSetter',
+    'stringPropWithoutSetter',
+    'arrayPropWithoutSetter',
+    'objectPropWithoutSetter'].forEach(prop => {
+      tbody.insertAdjacentHTML('beforeend',
+        `<tr>
+          <td>${prop} - property</td>
+          <td class=code>${JSON.stringify(stable[prop])}</td>
+          <td class=code>${JSON.stringify(patched[prop])}</td>
+          <td class=code>${JSON.stringify(preact[prop])}</td>
+        </tr>
+        <tr>
+          <td>${prop} - attribute</td>
+          <td class=code>${JSON.stringify(stable.getAttribute(prop))}</td>
+          <td class=code>${JSON.stringify(patched.getAttribute(prop))}</td>
+          <td class=code>${JSON.stringify(preact.getAttribute(prop))}</td>
+        </tr>`);
+  });
+}
+
+function renderPropertyAndAttribute(title, property, stable, patched, preact) {
+  tbody.insertAdjacentHTML('beforeend',
+    `<tr>
+      <td>${title} - ${property} property</td>
+      <td class=code>${JSON.stringify(stable[property])}</td>
+      <td class=code>${JSON.stringify(patched[property])}</td>
+      <td class=code>${JSON.stringify(preact[property])}</td>
+    </tr>
+    <tr>
+      <td>${title} - ${property} attribute</td>
+      <td class=code>${JSON.stringify(stable.getAttribute(property))}</td>
+      <td class=code>${JSON.stringify(patched.getAttribute(property))}</td>
+      <td class=code>${JSON.stringify(preact.getAttribute(property))}</td>
+    </tr>`);
+}
+
+{
+  const [stable, patched, preact] = renderAllFrameworks(
+    function(){<my-custom-element className="foo" />});
+  renderPropertyAndAttribute('className="foo"', 'className', stable, patched, preact);
+  renderPropertyAndAttribute('className="foo"', 'class', stable, patched, preact);
+}
+{
+  const [stable, patched, preact] = renderAllFrameworks(
+    function(){<my-custom-element class="foo" />});
+  renderPropertyAndAttribute('class="foo"', 'className', stable, patched, preact);
+  renderPropertyAndAttribute('class="foo"', 'class', stable, patched, preact);
+}
+{
+  const [stable, patched, preact] = renderAllFrameworks(
+    function(){<my-custom-element htmlFor="foo" />});
+  renderPropertyAndAttribute('htmlFor="foo"', 'htmlFor', stable, patched, preact);
+  renderPropertyAndAttribute('htmlFor="foo"', 'for', stable, patched, preact);
+}
+
+{
+
+  <my-custom-element
+    onbubbling={event => event.target.onbubblingfired = true}
+    onnobubbling={event => event.target.onnobubblingfired = true}
+    oncustomCapture={event => event.target.oncustomcapturefired = true}
+    onClick={event => event.target.onclickfired = true}
+  ><div /></my-custom-element>
+}
 
 // what happens with bubbling events?
 
-const ceevents = document.getElementById('ceevents');
+/*const ceevents = document.getElementById('ceevents');
 
 {
   const div = document.createElement('div');
@@ -368,4 +394,4 @@ addRenderToStringTest('renderToString onCustomEvent fn custom element',
 
 addRenderToStringTest('renderToString onCustomEvent fn div',
   `<div onCustomEvent="foo" />`,
-  <div onCustomEvent="foo" />);
+  <div onCustomEvent="foo" />);*/
