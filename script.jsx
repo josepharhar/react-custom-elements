@@ -10,7 +10,7 @@ thead, tfoot {
   background-color: #333;
   color: #fff;
 }
-.code {
+tbody > tr > td:not(:first-child) {
   background-color: lightgray;
   white-space: pre;
   font-family: monospace;
@@ -196,53 +196,43 @@ function renderPropertyAndAttribute(title, property, stable, patched, preact) {
 }
 
 {
-
-  <my-custom-element
-    onbubbling={event => event.target.onbubblingfired = true}
-    onnobubbling={event => event.target.onnobubblingfired = true}
-    oncustomCapture={event => event.target.oncustomcapturefired = true}
+  const [stable, patched, preact] = renderAllFrameworks(function(){<my-custom-element
+    onstringprop="foo"
+    oncustomevent={event => event.target.oncustomeventfired = true}
+    oncustomeventCapture={event => event.target.oncustomeventcapturefired = true}
     onClick={event => event.target.onclickfired = true}
-  ><div /></my-custom-element>
-}
+  ><div /></my-custom-element>});
 
-// what happens with bubbling events?
+  renderPropertyAndAttribute('onstringprop="foo"', 'onstringprop', stable, patched, preact);
+
+  function isBubblingHandlerRun(element) {
+    element.oncustomeventfired = false;
+    element.dispatchEvent(new Event('customevent', {bubbles: true}));
+    return element.oncustomeventfired;
+  }
+  tbody.insertAdjacentHTML('beforeend',
+    `<tr>
+      <td>onCustomEvent event handler gets run with bubbling</td>
+      <td>${isBubblingHandlerRun(stable)}</td>
+      <td>${isBubblingHandlerRun(patched)}</td>
+      <td>${isBubblingHandlerRun(preact)}</td>
+    </tr>`);
+
+  function isNonBubblingHandlerRun(element) {
+    element.oncustomeventfired = false;
+    element.dispatchEvent(new Event('customevent', {bubbles: false}));
+    return element.oncustomeventfired;
+  }
+  tbody.insertAdjacentHTML('beforeend',
+    `<tr>
+      <td>onCustomEvent event handler gets run without bubbling</td>
+      <td>${isNonBubblingHandlerRun(stable)}</td>
+      <td>${isNonBubblingHandlerRun(patched)}</td>
+      <td>${isNonBubblingHandlerRun(preact)}</td>
+    </tr>`);
+}
 
 /*const ceevents = document.getElementById('ceevents');
-
-{
-  const div = document.createElement('div');
-  flexContainer.appendChild(div);
-
-  div.insertAdjacentHTML('beforeend',
-    `<h4>onstringprop</h4>`);
-
-  const onstringprop = JSON.stringify(ceevents['onstringprop']);
-  div.insertAdjacentHTML('beforeend',
-    `<div>onstringprop prop: <span class=code>${onstringprop}</span></div>`);
-  const onstringattr = JSON.stringify(ceevents.getAttribute('onstringprop'));
-  div.insertAdjacentHTML('beforeend',
-    `<div>onstringprop attr: <span class=code>${onstringattr}</span></div>`);
-
-  const stringprop = JSON.stringify(ceevents['stringprop']);
-  div.insertAdjacentHTML('beforeend',
-    `<div>stringprop prop: <span class=code>${stringprop}</span></div>`);
-  const stringattr = JSON.stringify(ceevents.getAttribute('stringprop'));
-  div.insertAdjacentHTML('beforeend',
-    `<div>stringprop attr: <span class=code>${stringattr}</span></div>`);
-}
-
-{
-  const div = document.createElement('div');
-  flexContainer.appendChild(div);
-
-  div.insertAdjacentHTML('beforeend',
-    `<h4>event handler for bubbling event</h4>`);
-
-  ceevents.onbubblingfired = false;
-  ceevents.dispatchEvent(new Event('bubbling', {bubbles: true}));
-  div.insertAdjacentHTML('beforeend',
-    `<div>event handler called: <span class=code>${ceevents.onbubblingfired}</span></div>`);
-}
 
 {
   const div = document.createElement('div');
