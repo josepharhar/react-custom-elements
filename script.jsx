@@ -10,6 +10,12 @@ if (window.preact) {
 }
 
 window.h = isPreact ? preact.createElement : React.createElement;
+//window.renderToString = isPreact ? preactRenderToString : ReactDOMServer.renderToString;
+window.renderToString = input => {
+  const renderToString = isPreact ? preactRenderToString : ReactDOMServer.renderToString;
+  const output = renderToString(input);
+  return output.replace(` data-reactroot=""`, '');
+};
 
 let Component;
 if (window.React) {
@@ -251,3 +257,115 @@ const ceeventschild = document.getElementById('ceeventschild');
   div.insertAdjacentHTML('beforeend',
     `<div>event handler called: <span class=code>${ceevents.onclickfired}</span></div>`);
 }
+
+function addRenderToStringTest(title, inputStr, inputJsx) {
+  const div = document.createElement('div');
+  flexContainer.appendChild(div);
+
+  div.insertAdjacentHTML('beforeend',
+    `<h4>${title}</h4`);
+
+  const inputDiv = document.createElement('div');
+  div.appendChild(inputDiv);
+  inputDiv.textContent = 'input: ';
+  const inputSpan = document.createElement('span');
+  inputDiv.appendChild(inputSpan);
+  inputSpan.classList.add('code');
+  inputSpan.textContent = inputStr;
+
+  const outputDiv = document.createElement('div');
+  div.appendChild(outputDiv);
+  outputDiv.textContent = 'output: ';
+  const outputSpan = document.createElement('span');
+  outputDiv.appendChild(outputSpan);
+  outputSpan.classList.add('code');
+  outputSpan.textContent = renderToString(inputJsx);
+}
+
+addRenderToStringTest('renderToString htmlFor custom element',
+  `<my-custom-element htmlFor="foo" />`,
+  <my-custom-element htmlFor="foo" />);
+
+addRenderToStringTest('renderToString htmlFor div',
+  `<div htmlFor="foo" />`,
+  <div htmlFor="foo" />);
+
+addRenderToStringTest('renderToString for custom element',
+  `<my-custom-element for="foo" />`,
+  <my-custom-element for="foo" />);
+
+addRenderToStringTest('renderToString for div',
+  `<div for="foo" />`,
+  <div for="foo" />);
+
+addRenderToStringTest('renderToString className custom element',
+  `<my-custom-element className="foo" />`,
+  <my-custom-element className="foo" />);
+
+addRenderToStringTest('renderToString className div',
+  `<div className="foo" />`,
+  <div className="foo" />);
+
+addRenderToStringTest('renderToString class custom element',
+  `<my-custom-element class="foo" />`,
+  <my-custom-element class="foo" />);
+
+addRenderToStringTest('renderToString class div',
+  `<div class="foo" />`,
+  <div class="foo" />);
+
+addRenderToStringTest('renderToString boolean custom element',
+  `<my-custom-element attr={true} />`,
+  <my-custom-element attr={true} />);
+
+addRenderToStringTest('renderToString boolean div',
+  `<div attr={true} />`,
+  <div attr={true} />);
+
+addRenderToStringTest('renderToString array custom element',
+  `<my-custom-element attr={['one', 'two']} />`,
+  <my-custom-element attr={['one', 'two']} />);
+
+addRenderToStringTest('renderToString array div',
+  `<div attr={['one', 'two']} />`,
+  <div attr={['one', 'two']} />);
+
+addRenderToStringTest('renderToString object custom element',
+  `<my-custom-element attr={{property: 'value'}} />`,
+  <my-custom-element attr={{property: 'value'}} />);
+
+addRenderToStringTest('renderToString object div',
+  `<div attr={{property: 'value'}} />`,
+  <div attr={{property: 'value'}} />);
+
+addRenderToStringTest('renderToString onClick custom element',
+  `<my-custom-element onClick="foo" />`,
+  <my-custom-element onClick="foo" />);
+
+addRenderToStringTest('renderToString onClick div',
+  `<div onClick="foo" />`,
+  <div onClick="foo" />);
+
+addRenderToStringTest('renderToString onClick fn custom element',
+  `<my-custom-element onClick={() => console.log('foo')} />`,
+  <my-custom-element onClick={() => console.log('foo')} />);
+
+addRenderToStringTest('renderToString onClick fn div',
+  `<div onClick={() => console.log('foo')} />`,
+  <div onClick={() => console.log('foo')} />);
+
+addRenderToStringTest('renderToString onCustomEvent custom element',
+  `<my-custom-element onCustomEvent="foo" />`,
+  <my-custom-element onCustomEvent="foo" />);
+
+addRenderToStringTest('renderToString onCustomEvent div',
+  `<div onCustomEvent="foo" />`,
+  <div onCustomEvent="foo" />);
+
+addRenderToStringTest('renderToString onCustomEvent fn custom element',
+  `<my-custom-element onCustomEvent={() => console.log('foo')} />`,
+  <my-custom-element onCustomEvent={() => console.log('foo')} />);
+
+addRenderToStringTest('renderToString onCustomEvent fn div',
+  `<div onCustomEvent="foo" />`,
+  <div onCustomEvent="foo" />);

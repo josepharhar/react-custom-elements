@@ -8,9 +8,10 @@
     "@babel/preset-env": "^7.12.11",
     "@babel/preset-react": "^7.12.10",
     "preact": "^10.5.9",
+    "preact-render-to-string": "^5.1.12",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
-    "react-patched": "file:~/react/build/node_modules/react",
-    "react-dom-patched": "file:~/react/build/node_modules/react-dom"
+    "react-dom-patched": "file:~/react/build/node_modules/react-dom",
+    "react-patched": "file:~/react/build/node_modules/react"
   }
 }

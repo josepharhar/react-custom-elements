@@ -48,12 +48,15 @@ function loadScript(src) {
 }
 if (preactradioid.checked) {
   loadScript('node_modules/preact/dist/preact.umd.js');
+  loadScript('node_modules/preact-render-to-string/dist/index.js');
 } else if (reactpatchedradioid.checked) {
   loadScript('node_modules/react-patched/umd/react.development.js');
   loadScript('node_modules/react-dom-patched/umd/react-dom.development.js');
+  loadScript('node_modules/react-dom-patched/umd/react-dom-server.browser.development.js');
 } else {
   loadScript('node_modules/react/umd/react.development.js');
   loadScript('node_modules/react-dom/umd/react-dom.development.js');
+  loadScript('node_modules/react-dom/umd/react-dom-server.browser.development.js');
 }
 
 loadScript('build/script.js');
