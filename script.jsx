@@ -10,7 +10,7 @@ thead, tfoot {
   background-color: #333;
   color: #fff;
 }
-tbody > tr > td:not(:first-child) {
+.code, tbody > tr > td:not(:first-child) {
   background-color: lightgray;
   white-space: pre;
   font-family: monospace;
@@ -47,60 +47,12 @@ const reactStableRoot = document.createElement('div');
 const reactPatchedRoot = document.createElement('div');
 const preactRoot = document.createElement('div');
 
-/*class ReactComponent extends Component {
-  constructor() {
-    super();
-  }
-  render() {
-    return (
-      <div>
-        <my-custom-element
-          id="ceevents"
-          onstringprop="string"
-          onbubbling={() => document.getElementById('ceevents').onbubblingfired = true}
-          onnobubbling={() => document.getElementById('ceevents').onnobubblingfired = true}
-          oncustomCapture={() => document.getElementById('ceevents').oncustomcapturefired = true}
-          onClick={() => document.getElementById('ceevents').onclickfired = true}
-        >
-          <div id="ceeventschild"/>
-        </my-custom-element>
-      </div>
-    );
-  }
-};
-
-const rootComponent = <ReactComponent />;
-const root = document.createElement('div');
-document.body.appendChild(root);
-if (!isPreact) {
-  ReactDOM.render(rootComponent, root);
-} else if (window.preact) {
-  preact.render(rootComponent, root);
+function jsxRemoveFn(jsxfn) {
+  return jsxfn.toString().replace('function () {', '').replace(/}$/, '');
 }
-
-const style = document.createElement('style');
-document.head.appendChild(style);
-style.textContent = `
-h4 {
-  margin-bottom: 0;
-}
-.code {
-  background-color: lightgray;
-  white-space: pre;
-  font-family: monospace;
-  display: inline-block;
-}
-`;
-
-const flexContainer = document.createElement('div');
-flexContainer.classList.add('flex-container');
-document.body.appendChild(flexContainer);
-
-// does assigning a jsx attribute without a property setter in the custom element set an attribute? what does it do for each variable type?
-const proptypesandsetters = document.getElementById('proptypesandsetters');*/
 
 function renderAllFrameworks(jsxfn) {
-  const str = jsxfn.toString().replace('function () {', '').replace(/}$/, '');
+  const str = jsxRemoveFn(jsxfn);
 
   window.h = ReactStable.createElement;
   const reactStable = document.createElement('div');
@@ -117,9 +69,34 @@ function renderAllFrameworks(jsxfn) {
   window.h = undefined;
 
   return [
-    reactStable.querySelector('my-custom-element'),
-    reactPatched.querySelector('my-custom-element'),
-    preactDiv.querySelector('my-custom-element')
+    reactStable.firstChild,
+    reactPatched.firstChild,
+    preactDiv.firstChild
+  ];
+}
+
+function renderToStringAllFrameworks(jsxfn) {
+  const str = jsxRemoveFn(jsxfn);
+
+  window.h = ReactStable.createElement;
+  const reactStable = ReactDOMServerStable.renderToString(eval(str));
+
+  window.h = ReactPatched.createElement;
+  const reactPatched = ReactDOMServerPatched.renderToString(eval(str));
+
+  window.h = preact.createElement;
+  const preactStr = preactRenderToString(eval(str));
+
+  window.h = undefined;
+
+  function removeReactRoot(str) {
+    return str.replace(` data-reactroot=""`, '');
+  }
+
+  return [
+    removeReactRoot(reactStable),
+    removeReactRoot(reactPatched),
+    preactStr
   ];
 }
 
@@ -147,15 +124,15 @@ function renderAllFrameworks(jsxfn) {
       tbody.insertAdjacentHTML('beforeend',
         `<tr>
           <td>${prop} - property</td>
-          <td class=code>${JSON.stringify(stable[prop])}</td>
-          <td class=code>${JSON.stringify(patched[prop])}</td>
-          <td class=code>${JSON.stringify(preact[prop])}</td>
+          <td>${JSON.stringify(stable[prop])}</td>
+          <td>${JSON.stringify(patched[prop])}</td>
+          <td>${JSON.stringify(preact[prop])}</td>
         </tr>
         <tr>
           <td>${prop} - attribute</td>
-          <td class=code>${JSON.stringify(stable.getAttribute(prop))}</td>
-          <td class=code>${JSON.stringify(patched.getAttribute(prop))}</td>
-          <td class=code>${JSON.stringify(preact.getAttribute(prop))}</td>
+          <td>${JSON.stringify(stable.getAttribute(prop))}</td>
+          <td>${JSON.stringify(patched.getAttribute(prop))}</td>
+          <td>${JSON.stringify(preact.getAttribute(prop))}</td>
         </tr>`);
   });
 }
@@ -164,15 +141,15 @@ function renderPropertyAndAttribute(title, property, stable, patched, preact) {
   tbody.insertAdjacentHTML('beforeend',
     `<tr>
       <td>${title} - ${property} property</td>
-      <td class=code>${JSON.stringify(stable[property])}</td>
-      <td class=code>${JSON.stringify(patched[property])}</td>
-      <td class=code>${JSON.stringify(preact[property])}</td>
+      <td>${JSON.stringify(stable[property])}</td>
+      <td>${JSON.stringify(patched[property])}</td>
+      <td>${JSON.stringify(preact[property])}</td>
     </tr>
     <tr>
       <td>${title} - ${property} attribute</td>
-      <td class=code>${JSON.stringify(stable.getAttribute(property))}</td>
-      <td class=code>${JSON.stringify(patched.getAttribute(property))}</td>
-      <td class=code>${JSON.stringify(preact.getAttribute(property))}</td>
+      <td>${JSON.stringify(stable.getAttribute(property))}</td>
+      <td>${JSON.stringify(patched.getAttribute(property))}</td>
+      <td>${JSON.stringify(preact.getAttribute(property))}</td>
     </tr>`);
 }
 
@@ -230,158 +207,157 @@ function renderPropertyAndAttribute(title, property, stable, patched, preact) {
       <td>${isNonBubblingHandlerRun(patched)}</td>
       <td>${isNonBubblingHandlerRun(preact)}</td>
     </tr>`);
+
+  function isCaptureHandlerRun(element) {
+    element.oncustomeventcapturefired = false;
+    element.dispatchEvent(new Event('customevent', {bubbles: false}));
+    return element.oncustomeventcapturefired;
+  }
+  tbody.insertAdjacentHTML('beforeend',
+    `<tr>
+      <td>onCustomEventCapture event handler gets run during capture</td>
+      <td>${isCaptureHandlerRun(stable)}</td>
+      <td>${isCaptureHandlerRun(patched)}</td>
+      <td>${isCaptureHandlerRun(preact)}</td>
+    </tr>`);
+
+  function isClickHandlerRun(element) {
+    element.onclickfired = false;
+    element.click();
+    return element.onclickfired;
+  }
+  tbody.insertAdjacentHTML('beforeend',
+    `<tr>
+      <td>onClick event handler gets run</td>
+      <td>${isClickHandlerRun(stable)}</td>
+      <td>${isClickHandlerRun(patched)}</td>
+      <td>${isClickHandlerRun(preact)}</td>
+    </td>`);
 }
 
-/*const ceevents = document.getElementById('ceevents');
+document.body.insertAdjacentHTML('beforeend',
+  `<h4>renderToString tests</h4>`);
 
-{
-  const div = document.createElement('div');
-  flexContainer.appendChild(div);
+const renderToStringTable = document.createElement('table');
+document.body.appendChild(renderToStringTable);
+renderToStringTable.insertAdjacentHTML('beforeend',
+  `<thead><tr><td>Input JSX</td><td>React</td><td>React Patched</td><td>Preact</td>`);
+const renderToStringTbody = document.createElement('tbody');
+renderToStringTable.appendChild(renderToStringTbody);
 
-  div.insertAdjacentHTML('beforeend',
-    `<h4>event handler for non-bubbling event</h4>`);
+function addRenderToStringTest(title, jsxstr, jsxfn) {
+  const [stable, patched, preact] = renderToStringAllFrameworks(jsxfn);
 
-  ceevents.onnobubblingfired = false;
-  ceevents.dispatchEvent(new Event('nobubbling', {bubbles: false}));
-  div.insertAdjacentHTML('beforeend',
-    `<div>event handler called: <span class=code>${ceevents.onnobubblingfired}</span></div>`);
-}
+  const tr = document.createElement('tr');
+  renderToStringTbody.appendChild(tr);
 
-const ceeventschild = document.getElementById('ceeventschild');
-{
-  const div = document.createElement('div');
-  flexContainer.appendChild(div);
+  const titletd = document.createElement('td');
+  tr.appendChild(titletd);
+  const titlediv = document.createElement('div');
+  //titletd.appendChild(titlediv);
+  titlediv.textContent = title;
+  const jsxstrdiv = document.createElement('div');
+  titletd.appendChild(jsxstrdiv);
+  jsxstrdiv.textContent = jsxstr;
+  jsxstrdiv.classList.add('code');
 
-  div.insertAdjacentHTML('beforeend',
-    `<h4>event handler for capture event</h4>`);
+  const stabletd = document.createElement('td');
+  tr.appendChild(stabletd);
+  stabletd.textContent = stable;
 
-  ceevents.oncustomcapturefired = false;
-  ceeventschild.dispatchEvent(new Event('custom', {bubbles: false}));
-  div.insertAdjacentHTML('beforeend',
-    `<div>event handler called during capture: <span class=code>${ceevents.oncustomcapturefired}</span></div>`);
-}
+  const patchedtd = document.createElement('td');
+  tr.appendChild(patchedtd);
+  patchedtd.textContent = patched;
 
-{
-  const div = document.createElement('div');
-  flexContainer.appendChild(div);
-
-  div.insertAdjacentHTML('beforeend',
-    `<h4>event handler for click event</h4>`);
-
-  ceevents.onclickfired = false;
-  ceevents.click();
-  div.insertAdjacentHTML('beforeend',
-    `<div>event handler called: <span class=code>${ceevents.onclickfired}</span></div>`);
-}
-
-function addRenderToStringTest(title, inputStr, inputJsx) {
-  const div = document.createElement('div');
-  flexContainer.appendChild(div);
-
-  div.insertAdjacentHTML('beforeend',
-    `<h4>${title}</h4`);
-
-  const inputDiv = document.createElement('div');
-  div.appendChild(inputDiv);
-  inputDiv.textContent = 'input: ';
-  const inputSpan = document.createElement('span');
-  inputDiv.appendChild(inputSpan);
-  inputSpan.classList.add('code');
-  inputSpan.textContent = inputStr;
-
-  const outputDiv = document.createElement('div');
-  div.appendChild(outputDiv);
-  outputDiv.textContent = 'output: ';
-  const outputSpan = document.createElement('span');
-  outputDiv.appendChild(outputSpan);
-  outputSpan.classList.add('code');
-  outputSpan.textContent = renderToString(inputJsx);
+  const preacttd = document.createElement('td');
+  tr.appendChild(preacttd);
+  preacttd.textContent = preact;
 }
 
 addRenderToStringTest('renderToString htmlFor custom element',
   `<my-custom-element htmlFor="foo" />`,
-  <my-custom-element htmlFor="foo" />);
+  function(){<my-custom-element htmlFor="foo" />});
 
 addRenderToStringTest('renderToString htmlFor div',
   `<div htmlFor="foo" />`,
-  <div htmlFor="foo" />);
+  function(){<div htmlFor="foo" />});
 
 addRenderToStringTest('renderToString for custom element',
   `<my-custom-element for="foo" />`,
-  <my-custom-element for="foo" />);
+  function(){<my-custom-element for="foo" />});
 
-addRenderToStringTest('renderToString for div',
+/*addRenderToStringTest('renderToString for div',
   `<div for="foo" />`,
-  <div for="foo" />);
+  function(){<div for="foo" />});*/
 
 addRenderToStringTest('renderToString className custom element',
   `<my-custom-element className="foo" />`,
-  <my-custom-element className="foo" />);
+  function(){<my-custom-element className="foo" />});
 
 addRenderToStringTest('renderToString className div',
   `<div className="foo" />`,
-  <div className="foo" />);
+  function(){<div className="foo" />});
 
 addRenderToStringTest('renderToString class custom element',
   `<my-custom-element class="foo" />`,
-  <my-custom-element class="foo" />);
+  function(){<my-custom-element class="foo" />});
 
-addRenderToStringTest('renderToString class div',
+/*addRenderToStringTest('renderToString class div',
   `<div class="foo" />`,
-  <div class="foo" />);
+  function(){<div class="foo" />});*/
 
 addRenderToStringTest('renderToString boolean custom element',
   `<my-custom-element attr={true} />`,
-  <my-custom-element attr={true} />);
+  function(){<my-custom-element attr={true} />});
 
-addRenderToStringTest('renderToString boolean div',
+/*addRenderToStringTest('renderToString boolean div',
   `<div attr={true} />`,
-  <div attr={true} />);
+  function(){<div attr={true} />});*/
 
 addRenderToStringTest('renderToString array custom element',
   `<my-custom-element attr={['one', 'two']} />`,
-  <my-custom-element attr={['one', 'two']} />);
+  function(){<my-custom-element attr={['one', 'two']} />});
 
 addRenderToStringTest('renderToString array div',
   `<div attr={['one', 'two']} />`,
-  <div attr={['one', 'two']} />);
+  function(){<div attr={['one', 'two']} />});
 
 addRenderToStringTest('renderToString object custom element',
   `<my-custom-element attr={{property: 'value'}} />`,
-  <my-custom-element attr={{property: 'value'}} />);
+  function(){<my-custom-element attr={{property: 'value'}} />});
 
 addRenderToStringTest('renderToString object div',
   `<div attr={{property: 'value'}} />`,
-  <div attr={{property: 'value'}} />);
+  function(){<div attr={{property: 'value'}} />});
 
 addRenderToStringTest('renderToString onClick custom element',
   `<my-custom-element onClick="foo" />`,
-  <my-custom-element onClick="foo" />);
+  function(){<my-custom-element onClick="foo" />});
 
 addRenderToStringTest('renderToString onClick div',
   `<div onClick="foo" />`,
-  <div onClick="foo" />);
+  function(){<div onClick="foo" />});
 
 addRenderToStringTest('renderToString onClick fn custom element',
   `<my-custom-element onClick={() => console.log('foo')} />`,
-  <my-custom-element onClick={() => console.log('foo')} />);
+  function(){<my-custom-element onClick={() => console.log('foo')} />});
 
 addRenderToStringTest('renderToString onClick fn div',
   `<div onClick={() => console.log('foo')} />`,
-  <div onClick={() => console.log('foo')} />);
+  function(){<div onClick={() => console.log('foo')} />});
 
 addRenderToStringTest('renderToString onCustomEvent custom element',
   `<my-custom-element onCustomEvent="foo" />`,
-  <my-custom-element onCustomEvent="foo" />);
+  function(){<my-custom-element onCustomEvent="foo" />});
 
-addRenderToStringTest('renderToString onCustomEvent div',
+/*addRenderToStringTest('renderToString onCustomEvent div',
   `<div onCustomEvent="foo" />`,
-  <div onCustomEvent="foo" />);
+  function(){<div onCustomEvent="foo" />});
 
 addRenderToStringTest('renderToString onCustomEvent fn custom element',
   `<my-custom-element onCustomEvent={() => console.log('foo')} />`,
-  <my-custom-element onCustomEvent={() => console.log('foo')} />);
+  function(){<my-custom-element onCustomEvent={() => console.log('foo')} />});
 
 addRenderToStringTest('renderToString onCustomEvent fn div',
   `<div onCustomEvent="foo" />`,
-  <div onCustomEvent="foo" />);*/
+  function(){<div onCustomEvent="foo" />});*/
