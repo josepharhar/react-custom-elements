@@ -11,16 +11,36 @@ thead, tfoot {
   color: #fff;
 }
 .code, tbody > tr > td:not(:first-child) {
-  background-color: lightgray;
+  /*background-color: lightgray;*/
   white-space: pre;
   font-family: monospace;
 }
+tbody > tr > td.warning {
+  background-color: rgb(255,255,102);
+}
+tbody > tr > td.error {
+  background-color: red;
+}
+tbody > tr > td.good {
+  background-color: lightgray;
+}
+h3 {
+  margin-bottom: 0;
+}
 `;
+
+document.body.insertAdjacentHTML('beforeend', `<h3>Properties and Attributes</h3>`);
 
 const table = document.createElement('table');
 document.body.appendChild(table);
 table.insertAdjacentHTML('beforeend',
-  `<thead><tr><td></td><td>React</td><td>React Patched</td><td>Preact</td>`);
+  `<thead><tr>
+    <td>JSX</td>
+    <td>Output Function</td>
+    <td>React Output</td>
+    <td>React Patched Output</td>
+    <td>Preact Output</td>
+  </tr></thead>`);
 const tbody = document.createElement('tbody');
 table.appendChild(tbody);
 
@@ -29,17 +49,11 @@ class MyCustomElement extends HTMLElement {
     super();
   }
 
-  get booleanPropWithSetter() { return this._booleanPropWithSetter; }
-  set booleanPropWithSetter(newValue) { this._booleanPropWithSetter = newValue; }
+  get setter() { return this._setter; }
+  set setter(newValue) { this._setter = newValue; }
 
-  get stringPropWithSetter() { return this._stringPropWithSetter; }
-  set stringPropWithSetter(newValue) { this._stringPropWithSetter = newValue; }
-
-  get arrayPropWithSetter() { return this._arrayPropWithSetter; }
-  set arrayPropWithSetter(newValue) { this._arrayPropWithSetter = newValue; }
-
-  get objectPropWithSetter() { return this._objectPropWithSetter; }
-  set objectPropWithSetter(newValue) { this._objectPropWithSetter = newValue; }
+  get onsetter() { return this._onsetter; }
+  set onsetter(newValue) { this._onsetter = newValue; }
 }
 customElements.define('my-custom-element', MyCustomElement);
 
@@ -100,99 +114,132 @@ function renderToStringAllFrameworks(jsxfn) {
   ];
 }
 
-{
-  const [stable, patched, preact] = renderAllFrameworks(
-    function() {<my-custom-element
-      booleanPropWithSetter={true}
-      stringPropWithSetter="string"
-      arrayPropWithSetter={['one', 'two']}
-      objectPropWithSetter={{property:'value'}}
-      booleanPropWithoutSetter={true}
-      stringPropWithoutSetter="string"
-      arrayPropWithoutSetter={['one', 'two']}
-      objectPropWithoutSetter={{property:'value'}}
-    />});
+function renderPropAttr(jsxfn, jsxstr, propName) {
+  const [stable, patched, preact] = renderAllFrameworks(jsxfn);
 
-  ['booleanPropWithSetter',
-    'stringPropWithSetter',
-    'arrayPropWithSetter',
-    'objectPropWithSetter',
-    'booleanPropWithoutSetter',
-    'stringPropWithoutSetter',
-    'arrayPropWithoutSetter',
-    'objectPropWithoutSetter'].forEach(prop => {
-      tbody.insertAdjacentHTML('beforeend',
-        `<tr>
-          <td>${prop} - property</td>
-          <td>${JSON.stringify(stable[prop])}</td>
-          <td>${JSON.stringify(patched[prop])}</td>
-          <td>${JSON.stringify(preact[prop])}</td>
-        </tr>
-        <tr>
-          <td>${prop} - attribute</td>
-          <td>${JSON.stringify(stable.getAttribute(prop))}</td>
-          <td>${JSON.stringify(patched.getAttribute(prop))}</td>
-          <td>${JSON.stringify(preact.getAttribute(prop))}</td>
-        </tr>`);
-  });
+  const rowOne = document.createElement('tr');
+  tbody.appendChild(rowOne);
+  rowOne.innerHTML =
+    `<td class=code id=insert></td>
+    <td class=code>element.${propName}</td>
+    <td class="code stable">${JSON.stringify(stable[propName])}</td>
+    <td class="code patched">${JSON.stringify(patched[propName])}</td>
+    <td class="code preact">${JSON.stringify(preact[propName])}</td>`;
+  rowOne.querySelector('#insert').textContent = jsxstr;
+
+  const rowTwo = document.createElement('tr');
+  tbody.appendChild(rowTwo);
+  rowTwo.innerHTML =
+    `<td class=code id=insert></td>
+    <td class=code>element.getAttribute('${propName}')</td>
+    <td class="code stable">${JSON.stringify(stable.getAttribute(propName))}</td>
+    <td class="code patched">${JSON.stringify(patched.getAttribute(propName))}</td>
+    <td class="code preact">${JSON.stringify(preact.getAttribute(propName))}</td>`;
+  rowTwo.querySelector('#insert').textContent = jsxstr;
 }
 
-function renderPropertyAndAttribute(title, property, stable, patched, preact) {
-  tbody.insertAdjacentHTML('beforeend',
-    `<tr>
-      <td>${title} - ${property} property</td>
-      <td>${JSON.stringify(stable[property])}</td>
-      <td>${JSON.stringify(patched[property])}</td>
-      <td>${JSON.stringify(preact[property])}</td>
-    </tr>
+renderPropAttr(
+  function(){<my-custom-element setter={true} />},
+  `<my-custom-element setter={true} />`,
+  'setter');
+renderPropAttr(
+  function(){<my-custom-element nosetter={true} />},
+  `<my-custom-element nosetter={true} />`,
+  'nosetter');
+renderPropAttr(
+  function(){<my-custom-element setter="string" />},
+  `<my-custom-element setter="string" />`,
+  'setter');
+renderPropAttr(
+  function(){<my-custom-element nosetter="string" />},
+  `<my-custom-element nosetter="string" />`,
+  'nosetter');
+renderPropAttr(
+  function(){<my-custom-element setter={['one', 'two']} />},
+  `<my-custom-element setter={['one', 'two']} />`,
+  'setter');
+renderPropAttr(
+  function(){<my-custom-element nosetter={['one', 'two']} />},
+  `<my-custom-element nosetter={['one', 'two']} />`,
+  'nosetter');
+renderPropAttr(
+  function(){<my-custom-element setter={{property: 'value'}} />},
+  `<my-custom-element setter={{property: 'value'}} />`,
+  'setter');
+renderPropAttr(
+  function(){<my-custom-element nosetter={{property: 'value'}} />},
+  `<my-custom-element nosetter={{property: 'value'}} />`,
+  'nosetter');
+
+renderPropAttr(
+  function(){<my-custom-element className="foo" />},
+  `<my-custom-element className="foo" />`,
+  'className');
+renderPropAttr(
+  function(){<my-custom-element className="foo" />},
+  `<my-custom-element className="foo" />`,
+  'class');
+
+renderPropAttr(
+  function(){<my-custom-element class="foo" />},
+  `<my-custom-element class="foo" />`,
+  'className');
+renderPropAttr(
+  function(){<my-custom-element class="foo" />},
+  `<my-custom-element class="foo" />`,
+  'class');
+
+renderPropAttr(
+  function(){<my-custom-element htmlFor="foo" />},
+  `<my-custom-element htmlFor="foo" />`,
+  'htmlFor');
+renderPropAttr(
+  function(){<my-custom-element htmlFor="foo" />},
+  `<my-custom-element htmlFor="foo" />`,
+  'for');
+
+renderPropAttr(
+  function(){<my-custom-element onsetter="foo" />},
+  `<my-custom-element onsetter="foo" />`,
+  'onsetter');
+renderPropAttr(
+  function(){<my-custom-element onnosetter="foo" />},
+  `<my-custom-element onnosetter="foo" />`,
+  'onnosetter');
+
+document.body.insertAdjacentHTML('beforeend', `<h3>Event Handlers</h3>`);
+const eventTable = document.createElement('table');
+document.body.appendChild(eventTable);
+eventTable.insertAdjacentHTML('beforeend',
+  `<thead>
     <tr>
-      <td>${title} - ${property} attribute</td>
-      <td>${JSON.stringify(stable.getAttribute(property))}</td>
-      <td>${JSON.stringify(patched.getAttribute(property))}</td>
-      <td>${JSON.stringify(preact.getAttribute(property))}</td>
-    </tr>`);
-}
-
-{
-  const [stable, patched, preact] = renderAllFrameworks(
-    function(){<my-custom-element className="foo" />});
-  renderPropertyAndAttribute('className="foo"', 'className', stable, patched, preact);
-  renderPropertyAndAttribute('className="foo"', 'class', stable, patched, preact);
-}
-{
-  const [stable, patched, preact] = renderAllFrameworks(
-    function(){<my-custom-element class="foo" />});
-  renderPropertyAndAttribute('class="foo"', 'className', stable, patched, preact);
-  renderPropertyAndAttribute('class="foo"', 'class', stable, patched, preact);
-}
-{
-  const [stable, patched, preact] = renderAllFrameworks(
-    function(){<my-custom-element htmlFor="foo" />});
-  renderPropertyAndAttribute('htmlFor="foo"', 'htmlFor', stable, patched, preact);
-  renderPropertyAndAttribute('htmlFor="foo"', 'for', stable, patched, preact);
-}
+      <td>Test Description</td>
+      <td>React Output</td>
+      <td>React Patched Output</td>
+      <td>Preact Output</td>
+    </tr>
+  </thead>`);
+const eventTbody = document.createElement('tbody');
+eventTable.appendChild(eventTbody);
 
 {
   const [stable, patched, preact] = renderAllFrameworks(function(){<my-custom-element
-    onstringprop="foo"
     oncustomevent={event => event.target.oncustomeventfired = true}
     oncustomeventCapture={event => event.target.oncustomeventcapturefired = true}
     onClick={event => event.target.onclickfired = true}
   ><div /></my-custom-element>});
-
-  renderPropertyAndAttribute('onstringprop="foo"', 'onstringprop', stable, patched, preact);
 
   function isBubblingHandlerRun(element) {
     element.oncustomeventfired = false;
     element.dispatchEvent(new Event('customevent', {bubbles: true}));
     return element.oncustomeventfired;
   }
-  tbody.insertAdjacentHTML('beforeend',
+  eventTbody.insertAdjacentHTML('beforeend',
     `<tr>
       <td>onCustomEvent event handler gets run with bubbling</td>
-      <td>${isBubblingHandlerRun(stable)}</td>
-      <td>${isBubblingHandlerRun(patched)}</td>
-      <td>${isBubblingHandlerRun(preact)}</td>
+      <td class="code stable">${isBubblingHandlerRun(stable)}</td>
+      <td class="code patched">${isBubblingHandlerRun(patched)}</td>
+      <td class="code preact">${isBubblingHandlerRun(preact)}</td>
     </tr>`);
 
   function isNonBubblingHandlerRun(element) {
@@ -200,12 +247,12 @@ function renderPropertyAndAttribute(title, property, stable, patched, preact) {
     element.dispatchEvent(new Event('customevent', {bubbles: false}));
     return element.oncustomeventfired;
   }
-  tbody.insertAdjacentHTML('beforeend',
+  eventTbody.insertAdjacentHTML('beforeend',
     `<tr>
       <td>onCustomEvent event handler gets run without bubbling</td>
-      <td>${isNonBubblingHandlerRun(stable)}</td>
-      <td>${isNonBubblingHandlerRun(patched)}</td>
-      <td>${isNonBubblingHandlerRun(preact)}</td>
+      <td class="code stable">${isNonBubblingHandlerRun(stable)}</td>
+      <td class="code patched">${isNonBubblingHandlerRun(patched)}</td>
+      <td class="code preact">${isNonBubblingHandlerRun(preact)}</td>
     </tr>`);
 
   function isCaptureHandlerRun(element) {
@@ -213,12 +260,12 @@ function renderPropertyAndAttribute(title, property, stable, patched, preact) {
     element.dispatchEvent(new Event('customevent', {bubbles: false}));
     return element.oncustomeventcapturefired;
   }
-  tbody.insertAdjacentHTML('beforeend',
+  eventTbody.insertAdjacentHTML('beforeend',
     `<tr>
       <td>onCustomEventCapture event handler gets run during capture</td>
-      <td>${isCaptureHandlerRun(stable)}</td>
-      <td>${isCaptureHandlerRun(patched)}</td>
-      <td>${isCaptureHandlerRun(preact)}</td>
+      <td class="code stable">${isCaptureHandlerRun(stable)}</td>
+      <td class="code patched">${isCaptureHandlerRun(patched)}</td>
+      <td class="code preact">${isCaptureHandlerRun(preact)}</td>
     </tr>`);
 
   function isClickHandlerRun(element) {
@@ -226,18 +273,16 @@ function renderPropertyAndAttribute(title, property, stable, patched, preact) {
     element.click();
     return element.onclickfired;
   }
-  tbody.insertAdjacentHTML('beforeend',
+  eventTbody.insertAdjacentHTML('beforeend',
     `<tr>
       <td>onClick event handler gets run</td>
-      <td>${isClickHandlerRun(stable)}</td>
-      <td>${isClickHandlerRun(patched)}</td>
-      <td>${isClickHandlerRun(preact)}</td>
+      <td class="code stable">${isClickHandlerRun(stable)}</td>
+      <td class="code patched">${isClickHandlerRun(patched)}</td>
+      <td class="code preact">${isClickHandlerRun(preact)}</td>
     </td>`);
 }
 
-document.body.insertAdjacentHTML('beforeend',
-  `<h4>renderToString tests</h4>`);
-
+document.body.insertAdjacentHTML('beforeend', `<h3>renderToString tests</h3>`);
 const renderToStringTable = document.createElement('table');
 document.body.appendChild(renderToStringTable);
 renderToStringTable.insertAdjacentHTML('beforeend',
@@ -264,14 +309,17 @@ function addRenderToStringTest(title, jsxstr, jsxfn) {
   const stabletd = document.createElement('td');
   tr.appendChild(stabletd);
   stabletd.textContent = stable;
+  stabletd.classList.add('code', 'stable');
 
   const patchedtd = document.createElement('td');
   tr.appendChild(patchedtd);
   patchedtd.textContent = patched;
+  patchedtd.classList.add('code', 'patched');
 
   const preacttd = document.createElement('td');
   tr.appendChild(preacttd);
   preacttd.textContent = preact;
+  preacttd.classList.add('code', 'preact');
 }
 
 addRenderToStringTest('renderToString htmlFor custom element',
@@ -310,9 +358,9 @@ addRenderToStringTest('renderToString boolean custom element',
   `<my-custom-element attr={true} />`,
   function(){<my-custom-element attr={true} />});
 
-/*addRenderToStringTest('renderToString boolean div',
+addRenderToStringTest('renderToString boolean div',
   `<div attr={true} />`,
-  function(){<div attr={true} />});*/
+  function(){<div attr={true} />});
 
 addRenderToStringTest('renderToString array custom element',
   `<my-custom-element attr={['one', 'two']} />`,
@@ -361,3 +409,36 @@ addRenderToStringTest('renderToString onCustomEvent fn custom element',
 addRenderToStringTest('renderToString onCustomEvent fn div',
   `<div onCustomEvent="foo" />`,
   function(){<div onCustomEvent="foo" />});*/
+
+document.querySelectorAll('tbody').forEach(tbody => {
+  tbody.querySelectorAll('tr').forEach(tr => {
+    const stable = tr.querySelector('.stable');
+    const patched = tr.querySelector('.patched');
+    const preact = tr.querySelector('.preact');
+    if (!stable || !patched || !preact) {
+      console.log('bad row:', tr);
+      return;
+    }
+
+    const stableMatchesPatched = stable.textContent === patched.textContent;
+    const patchedMatchesPreact = patched.textContent === preact.textContent;
+
+    if (!stableMatchesPatched && !patchedMatchesPreact) {
+      stable.classList.add('error');
+      patched.classList.add('error');
+      preact.classList.add('error');
+    } else if (!stableMatchesPatched) {
+      stable.classList.add('warning');
+      patched.classList.add('warning');
+      preact.classList.add('good');
+    } else if (!patchedMatchesPreact) {
+      stable.classList.add('good');
+      patched.classList.add('warning');
+      preact.classList.add('warning');
+    } else {
+      stable.classList.add('good');
+      patched.classList.add('good');
+      preact.classList.add('good');
+    }
+  });
+});
