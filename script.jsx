@@ -29,7 +29,9 @@ h3 {
 }
 `;
 
-document.body.insertAdjacentHTML('beforeend', `<h3>Properties and Attributes</h3>`);
+document.body.insertAdjacentHTML('beforeend',
+  `<h3>Properties and Attributes</h3>
+  <div>my-custom-element has a property setter registered for "setter" and "onsetter"</div>`);
 
 const table = document.createElement('table');
 document.body.appendChild(table);
@@ -45,10 +47,6 @@ const tbody = document.createElement('tbody');
 table.appendChild(tbody);
 
 class MyCustomElement extends HTMLElement {
-  constructor() {
-    super();
-  }
-
   get setter() { return this._setter; }
   set setter(newValue) { this._setter = newValue; }
 
@@ -199,6 +197,15 @@ renderPropAttr(
   'for');
 
 renderPropAttr(
+  function(){<div htmlFor="foo" />},
+  `<div htmlFor="foo" />`,
+  'htmlFor');
+renderPropAttr(
+  function(){<div htmlFor="foo" />},
+  `<div htmlFor="foo" />`,
+  'for');
+
+renderPropAttr(
   function(){<my-custom-element onsetter="foo" />},
   `<my-custom-element onsetter="foo" />`,
   'onsetter');
@@ -282,15 +289,20 @@ eventTable.appendChild(eventTbody);
     </td>`);
 }
 
-document.body.insertAdjacentHTML('beforeend', `<h3>renderToString tests</h3>`);
+document.body.insertAdjacentHTML('beforeend', `<h3>renderToString</h3>`);
 const renderToStringTable = document.createElement('table');
 document.body.appendChild(renderToStringTable);
 renderToStringTable.insertAdjacentHTML('beforeend',
-  `<thead><tr><td>Input JSX</td><td>React</td><td>React Patched</td><td>Preact</td>`);
+  `<thead><tr>
+    <td>Input JSX</td>
+    <td>React Output</td>
+    <td>React Patched Output</td>
+    <td>Preact Output</td>
+  </tr></thead>`);
 const renderToStringTbody = document.createElement('tbody');
 renderToStringTable.appendChild(renderToStringTbody);
 
-function addRenderToStringTest(title, jsxstr, jsxfn) {
+function addRenderToStringTest(jsxstr, jsxfn) {
   const [stable, patched, preact] = renderToStringAllFrameworks(jsxfn);
 
   const tr = document.createElement('tr');
@@ -298,9 +310,6 @@ function addRenderToStringTest(title, jsxstr, jsxfn) {
 
   const titletd = document.createElement('td');
   tr.appendChild(titletd);
-  const titlediv = document.createElement('div');
-  //titletd.appendChild(titlediv);
-  titlediv.textContent = title;
   const jsxstrdiv = document.createElement('div');
   titletd.appendChild(jsxstrdiv);
   jsxstrdiv.textContent = jsxstr;
@@ -322,15 +331,15 @@ function addRenderToStringTest(title, jsxstr, jsxfn) {
   preacttd.classList.add('code', 'preact');
 }
 
-addRenderToStringTest('renderToString htmlFor custom element',
+addRenderToStringTest(
   `<my-custom-element htmlFor="foo" />`,
   function(){<my-custom-element htmlFor="foo" />});
 
-addRenderToStringTest('renderToString htmlFor div',
+addRenderToStringTest(
   `<div htmlFor="foo" />`,
   function(){<div htmlFor="foo" />});
 
-addRenderToStringTest('renderToString for custom element',
+addRenderToStringTest(
   `<my-custom-element for="foo" />`,
   function(){<my-custom-element for="foo" />});
 
@@ -338,15 +347,15 @@ addRenderToStringTest('renderToString for custom element',
   `<div for="foo" />`,
   function(){<div for="foo" />});*/
 
-addRenderToStringTest('renderToString className custom element',
+addRenderToStringTest(
   `<my-custom-element className="foo" />`,
   function(){<my-custom-element className="foo" />});
 
-addRenderToStringTest('renderToString className div',
+addRenderToStringTest(
   `<div className="foo" />`,
   function(){<div className="foo" />});
 
-addRenderToStringTest('renderToString class custom element',
+addRenderToStringTest(
   `<my-custom-element class="foo" />`,
   function(){<my-custom-element class="foo" />});
 
@@ -354,61 +363,80 @@ addRenderToStringTest('renderToString class custom element',
   `<div class="foo" />`,
   function(){<div class="foo" />});*/
 
-addRenderToStringTest('renderToString boolean custom element',
+addRenderToStringTest(
   `<my-custom-element attr={true} />`,
   function(){<my-custom-element attr={true} />});
 
-addRenderToStringTest('renderToString boolean div',
+addRenderToStringTest(
   `<div attr={true} />`,
   function(){<div attr={true} />});
 
-addRenderToStringTest('renderToString array custom element',
+addRenderToStringTest(
   `<my-custom-element attr={['one', 'two']} />`,
   function(){<my-custom-element attr={['one', 'two']} />});
 
-addRenderToStringTest('renderToString array div',
+addRenderToStringTest(
   `<div attr={['one', 'two']} />`,
   function(){<div attr={['one', 'two']} />});
 
-addRenderToStringTest('renderToString object custom element',
+addRenderToStringTest(
   `<my-custom-element attr={{property: 'value'}} />`,
   function(){<my-custom-element attr={{property: 'value'}} />});
 
-addRenderToStringTest('renderToString object div',
+addRenderToStringTest(
   `<div attr={{property: 'value'}} />`,
   function(){<div attr={{property: 'value'}} />});
 
-addRenderToStringTest('renderToString onClick custom element',
-  `<my-custom-element onClick="foo" />`,
-  function(){<my-custom-element onClick="foo" />});
-
-addRenderToStringTest('renderToString onClick div',
+addRenderToStringTest(
   `<div onClick="foo" />`,
   function(){<div onClick="foo" />});
-
-addRenderToStringTest('renderToString onClick fn custom element',
-  `<my-custom-element onClick={() => console.log('foo')} />`,
-  function(){<my-custom-element onClick={() => console.log('foo')} />});
-
-addRenderToStringTest('renderToString onClick fn div',
+addRenderToStringTest(
+  `<div onClickCapture="foo" />`,
+  function(){<div onClickCapture="foo" />});
+addRenderToStringTest(
+  `<div onclick="foo" />`,
+  function(){<div onclick="foo" />});
+addRenderToStringTest(
+  `<div onclickcapture="foo" />`,
+  function(){<div onclickcapture="foo" />});
+addRenderToStringTest(
   `<div onClick={() => console.log('foo')} />`,
   function(){<div onClick={() => console.log('foo')} />});
+addRenderToStringTest(
+  `<div onCustomEvent={() => console.log('foo')} />`,
+  function(){<div onCustomEvent={() => console.log('foo')} />});
 
-addRenderToStringTest('renderToString onCustomEvent custom element',
-  `<my-custom-element onCustomEvent="foo" />`,
-  function(){<my-custom-element onCustomEvent="foo" />});
-
-/*addRenderToStringTest('renderToString onCustomEvent div',
-  `<div onCustomEvent="foo" />`,
-  function(){<div onCustomEvent="foo" />});
-
-addRenderToStringTest('renderToString onCustomEvent fn custom element',
+addRenderToStringTest(
+  `<my-custom-element onClick="foo" />`,
+  function(){<my-custom-element onClick="foo" />});
+addRenderToStringTest(
+  `<my-custom-element onClickCapture="foo" />`,
+  function(){<my-custom-element onClickCapture="foo" />});
+addRenderToStringTest(
+  `<my-custom-element onclick="foo" />`,
+  function(){<my-custom-element onclick="foo" />});
+addRenderToStringTest(
+  `<my-custom-element onclickcapture="foo" />`,
+  function(){<my-custom-element onclickcapture="foo" />});
+addRenderToStringTest(
+  `<my-custom-element onClick={() => console.log('foo')} />`,
+  function(){<my-custom-element onClick={() => console.log('foo')} />});
+addRenderToStringTest(
   `<my-custom-element onCustomEvent={() => console.log('foo')} />`,
   function(){<my-custom-element onCustomEvent={() => console.log('foo')} />});
 
-addRenderToStringTest('renderToString onCustomEvent fn div',
-  `<div onCustomEvent="foo" />`,
-  function(){<div onCustomEvent="foo" />});*/
+addRenderToStringTest(
+  `<my-custom-element onCustomEvent="foo" />`,
+  function(){<my-custom-element onCustomEvent="foo" />});
+addRenderToStringTest(
+  `<my-custom-element onCustomEventCapture="foo" />`,
+  function(){<my-custom-element onCustomEventCapture="foo" />});
+addRenderToStringTest(
+  `<my-custom-element oncustomevent="foo" />`,
+  function(){<my-custom-element oncustomevent="foo" />});
+addRenderToStringTest(
+  `<my-custom-element oncustomeventcapture="foo" />`,
+  function(){<my-custom-element oncustomeventcapture="foo" />});
 
 document.querySelectorAll('tbody').forEach(tbody => {
   tbody.querySelectorAll('tr').forEach(tr => {
