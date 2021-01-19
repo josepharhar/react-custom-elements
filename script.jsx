@@ -1,34 +1,5 @@
 /** @jsx h */
 
-const style = document.createElement('style');
-document.body.appendChild(style);
-style.textContent = `
-table, td {
-  border: 1px solid #333;
-}
-thead, tfoot {
-  background-color: #333;
-  color: #fff;
-}
-.code, tbody > tr > td:not(:first-child) {
-  /*background-color: lightgray;*/
-  white-space: pre;
-  font-family: monospace;
-}
-tbody > tr > td.warning {
-  background-color: rgb(255,255,102);
-}
-tbody > tr > td.error {
-  background-color: red;
-}
-tbody > tr > td.good {
-  background-color: lightgray;
-}
-h3 {
-  margin-bottom: 0;
-}
-`;
-
 document.body.insertAdjacentHTML('beforeend',
   `<h3>Properties and Attributes</h3>
   <div>my-custom-element has a property setter registered for "setter" and "onsetter"</div>`);

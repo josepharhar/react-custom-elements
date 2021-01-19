@@ -26,6 +26,34 @@ window.ReactDOMServerPatched = window.ReactDOMServer;
 window.ReactDOMServer = undefined;
 </script>
 
+<style>
+table, td {
+  border: 1px solid #333;
+}
+thead, tfoot {
+  background-color: #333;
+  color: #fff;
+}
+.code, tbody > tr > td:not(:first-child) {
+  /*background-color: lightgray;*/
+  white-space: pre;
+  font-family: monospace;
+}
+.warning {
+  background-color: rgb(255,255,102);
+}
+.error {
+  background-color: red;
+}
+.good {
+  background-color: lightgray;
+}
+h3 {
+  margin-bottom: 0;
+}
+</style>
+
 <body>
 <h2>React and Preact Custom Element Testing</h2>
+<p><span class=warning>Yellow</span> rows show where my patch is different from one of React or Preact,<br>and <span class=error>red</span> rows show where my patch is different from both React and Preact.</p>
 <script src="build/script.js"></script>
