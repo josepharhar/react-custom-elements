@@ -177,6 +177,16 @@ renderPropAttr(
   'for');
 
 renderPropAttr(
+  function(){<my-custom-element children="foo" />},
+  `<my-custom-element children="foo" />`,
+  'children');
+
+renderPropAttr(
+  function(){<my-custom-element key="foo" />},
+  `<my-custom-element key="foo" />`,
+  'key');
+
+renderPropAttr(
   function(){<my-custom-element onsetter="foo" />},
   `<my-custom-element onsetter="foo" />`,
   'onsetter');
