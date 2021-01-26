@@ -284,7 +284,10 @@ const renderToStringTbody = document.createElement('tbody');
 renderToStringTable.appendChild(renderToStringTbody);
 
 function addRenderToStringTest(jsxstr, jsxfn) {
+  const originalConsoleError = console.error;
+  console.error = function() {};
   const [stable, patched, preact] = renderToStringAllFrameworks(jsxfn);
+  console.error = originalConsoleError;
 
   const tr = document.createElement('tr');
   renderToStringTbody.appendChild(tr);
@@ -418,6 +421,74 @@ addRenderToStringTest(
 addRenderToStringTest(
   `<my-custom-element oncustomeventcapture="foo" />`,
   function(){<my-custom-element oncustomeventcapture="foo" />});
+
+document.body.insertAdjacentHTML('beforeend',
+  `<h3>Upgrade, SSR, hydration, and render</h3>
+  <p>This section throws custom element upgrade at various points in the<br>
+  SSR lifecycle and examines what the effect is on the custom element.</p>`);
+
+{
+  document.body.insertAdjacentHTML('beforeend',
+    `<h4>Upgrade before SSR</h4>`);
+  const upgradeBeforeSsrTable = document.createElement('table');
+  document.body.appendChild(upgradeBeforeSsrTable);
+  upgradeBeforeSsrTable.insertAdjacentHTML('beforeend',
+    `<thead><tr>
+      <td>Step</td>
+      <td>React Output</td>
+      <td>React Patched Output</td>
+      <td>Preact Output</td>
+    </tr></thead>`);
+  const upgradeBeforeSsrTbody = document.createElement('tbody');
+  upgradeBeforeSsrTable.appendChild(upgradeBeforeSsrTbody);
+
+  class MyCustomElementBeforeSsr extends HTMLElement {
+    get setter() { return this._setter; }
+    set setter(newValue) { this._setter = newValue; }
+  };
+
+  const tagName = 'my-custom-element-beforessr';
+  customElements.define(tagName, MyCustomElementBeforeSsr);
+  const jsxfn = function(){<my-custom-element-beforessr setter="foo" />};
+  const [stableSsr, patchedSsr, preactSsr] = renderToStringAllFrameworks(jsxfn);
+  const stableRoot = document.createElement('div');
+  const patchedRoot = document.createElement('div');
+  const preactRoot = document.createElement('div');
+  stableRoot.innerHTML = stableSsr;
+  patchedRoot.innerHTML = patchedSsr;
+  preactRoot.innerHTML = preactSsr;
+  const stableCE = stableRoot.querySelector(tagName);
+  const patchedCE = stableRoot.querySelector(tagName);
+  const preactCE = stableRoot.querySelector(tagName);
+
+  function appendUpdate(title) {
+    upgradeBeforeSsrTbody.insertAdjacentHTML('beforeend',
+      `<tr>
+        <td>${title}</td>
+        <td class=stable>attribute: ${JSON.stringify(stableCE.getAttribute('setter'))}<br>property: ${JSON.stringify(stableCE.setter)}</td>
+        <td class=patched>attribute: ${JSON.stringify(patchedCE.getAttribute('setter'))}<br>property: ${JSON.stringify(patchedCE.setter)}</td>
+        <td class=preact>attribute: ${JSON.stringify(preactCE.getAttribute('setter'))}<br>property: ${JSON.stringify(preactCE.setter)}</td>
+      </tr>`);
+  }
+  appendUpdate(`CE Defined<br>After SSR, before hydration`);
+
+  const str = jsxRemoveFn(jsxfn);
+  window.h = ReactStable.createElement;
+  ReactDOMStable.hydrate(eval(str), stableRoot);
+  window.h = ReactPatched.createElement;
+  ReactDOMPatched.hydrate(eval(str), patchedRoot);
+  window.h = preact.createElement;
+  preact.hydrate(eval(str), preactRoot);
+  window.h = undefined;
+
+  appendUpdate(`CE Defined<br>After hydration, before render`);
+}
+
+
+// 1. upgradeBeforeSsr
+// 2. upgradeBeforeHydrate
+// 3. upgradeBeforeRender
+// 4. upgradeLast
 
 document.querySelectorAll('tbody').forEach(tbody => {
   tbody.querySelectorAll('tr').forEach(tr => {
