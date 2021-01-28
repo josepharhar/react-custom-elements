@@ -41,10 +41,10 @@ const tbody = document.createElement('tbody');
 table.appendChild(tbody);
 
 class MyCustomElement extends HTMLElement {
-  get setter() { return this._setter; }
+  get setter() { return this._setter || 'setter default value'; }
   set setter(newValue) { this._setter = newValue; }
 
-  get onsetter() { return this._onsetter; }
+  get onsetter() { return this._onsetter || 'setter default value'; }
   set onsetter(newValue) { this._onsetter = newValue; }
 }
 customElements.define('my-custom-element', MyCustomElement);
@@ -461,22 +461,22 @@ The steps in the 'lifecycle' run here are:<br>
 
 class MyCustomElementBeforeSsr extends HTMLElement {
   static tagName = 'my-custom-element-beforessr';
-  get setter() { return this._setter; }
+  get setter() { return this._setter || 'setter default value'; }
   set setter(newValue) { this._setter = newValue; }
 };
 class MyCustomElementBeforeHydration extends HTMLElement {
   static tagName = 'my-custom-element-beforehydration';
-  get setter() { return this._setter; }
+  get setter() { return this._setter || 'setter default value'; }
   set setter(newValue) { this._setter = newValue; }
 };
 class MyCustomElementBeforeForceUpdate extends HTMLElement {
   static tagName = 'my-custom-element-beforeforceupdate';
-  get setter() { return this._setter; }
+  get setter() { return this._setter || 'setter default value'; }
   set setter(newValue) { this._setter = newValue; }
 };
 class MyCustomElementAfterForceUpdate extends HTMLElement {
   static tagName = 'my-custom-element-afterforceupdate';
-  get setter() { return this._setter; }
+  get setter() { return this._setter || 'setter default value'; }
   set setter(newValue) { this._setter = newValue; }
 };
 
@@ -499,27 +499,34 @@ runUpgradeTest(
 
 function runUpgradeTest(customElement, title, step) {
   document.body.insertAdjacentHTML('beforeend', `<h4>${title}</h4>`);
-  const upgradeBeforeSsrTable = document.createElement('table');
-  document.body.appendChild(upgradeBeforeSsrTable);
-  upgradeBeforeSsrTable.insertAdjacentHTML('beforeend',
+  const upgradeTable = document.createElement('table');
+  document.body.appendChild(upgradeTable);
+  upgradeTable.insertAdjacentHTML('beforeend',
     `<thead><tr>
       <td>Step</td>
       <td>React Output</td>
       <td>React Patched Output</td>
       <td>Preact Output</td>
     </tr></thead>`);
-  const upgradeBeforeSsrTbody = document.createElement('tbody');
-  upgradeBeforeSsrTable.appendChild(upgradeBeforeSsrTbody);
+  const upgradeTbody = document.createElement('tbody');
+  upgradeTable.appendChild(upgradeTbody);
+
+  const stableRoot = document.createElement('div');
+  const patchedRoot = document.createElement('div');
+  const preactRoot = document.createElement('div');
+  function upgrade() {
+    customElements.define(customElement.tagName, customElement);
+    customElements.upgrade(stableRoot);
+    customElements.upgrade(patchedRoot);
+    customElements.upgrade(preactRoot);
+  }
 
   if (step === 0)
-    customElements.define(customElement.tagName, customElement);
+    upgrade();
 
   const jsxfn = function(){<WrapperComponent><replace-me setter="foo" /></WrapperComponent>};
   const jsxstr = jsxRemoveFn(jsxfn).replace('replace-me', customElement.tagName);
-  const jsxfnasdf = function(){<WrapperComponent><my-custom-element-beforessr setter="foo" /></WrapperComponent>};
-  const jsxstrasdf = jsxRemoveFn(jsxfnasdf);
   console.log('jsxstr: ' + jsxstr);
-  console.log('jsxstrasdf: ' + jsxstrasdf);
 
   window.h = ReactStable.createElement;
   window.WrapperComponent = StableWrapper;
@@ -535,21 +542,19 @@ function runUpgradeTest(customElement, title, step) {
   window.WrapperComponent = undefined;
 
 
-  const stableRoot = document.createElement('div');
-  const patchedRoot = document.createElement('div');
-  const preactRoot = document.createElement('div');
   stableRoot.innerHTML = stableSsr;
   patchedRoot.innerHTML = patchedSsr;
   preactRoot.innerHTML = preactSsr;
   const stableCE = stableRoot.querySelector(customElement.tagName);
-  const patchedCE = stableRoot.querySelector(customElement.tagName);
-  const preactCE = stableRoot.querySelector(customElement.tagName);
+  const patchedCE = patchedRoot.querySelector(customElement.tagName);
+  //patchedCE.removeAttribute('setter');
+  const preactCE = preactRoot.querySelector(customElement.tagName);
 
   function appendUpdate(title) {
     const preTitleText = customElements.get(customElement.tagName)
       ? 'CE upgraded<br>'
       : 'CE not upgraded yet<br>';
-    upgradeBeforeSsrTbody.insertAdjacentHTML('beforeend',
+    upgradeTbody.insertAdjacentHTML('beforeend',
       `<tr>
         <td>${preTitleText}${title}</td>
         <td class=stable>attribute: ${JSON.stringify(stableCE.getAttribute('setter'))}<br>property: ${JSON.stringify(stableCE.setter)}</td>
@@ -561,7 +566,7 @@ function runUpgradeTest(customElement, title, step) {
   appendUpdate(`After innerHTML=renderToString, before hydration`);
 
   if (step === 1)
-    customElements.define(customElement.tagName, customElement);
+    upgrade();
 
   window.h = ReactStable.createElement;
   window.WrapperComponent = StableWrapper;
@@ -578,7 +583,7 @@ function runUpgradeTest(customElement, title, step) {
   appendUpdate(`After hydration, before forceUpdate`);
 
   if (step === 2)
-    customElements.define(customElement.tagName, customElement);
+    upgrade();
 
   stableWrapper.forceUpdate();
   patchedWrapper.forceUpdate();
@@ -587,7 +592,7 @@ function runUpgradeTest(customElement, title, step) {
   appendUpdate(`After forceUpdate`);
 
   if (step === 3) {
-    customElements.define(customElement.tagName, customElement);
+    upgrade();
     appendUpdate(`After upgrade after forceUpdate`);
   }
 }
