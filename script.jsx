@@ -1,5 +1,28 @@
 /** @jsx h */
 
+class StableWrapper extends ReactStable.Component {
+  constructor() {
+    super();
+    window.stableWrapper = this;
+  }
+  render() { return this.props.children; }
+};
+class PatchedWrapper extends ReactPatched.Component {
+  constructor() {
+    super();
+    window.patchedWrapper = this;
+  }
+  render() { return this.props.children; }
+};
+class PreactWrapper extends preact.Component {
+  constructor() {
+    super();
+    window.preactWrapper = this;
+  }
+  render() { return this.props.children; }
+};
+
+
 document.body.insertAdjacentHTML('beforeend',
   `<h3>Properties and Attributes</h3>
   <div>my-custom-element has a property setter registered for "setter" and "onsetter"</div>`);
@@ -474,9 +497,8 @@ runUpgradeTest(
   'Upgrade after forceUpdate',
   3);
 
-
 function runUpgradeTest(customElement, title, step) {
-  document.body.insertAdjacentHTML('beforeend', title);
+  document.body.insertAdjacentHTML('beforeend', `<h4>${title}</h4>`);
   const upgradeBeforeSsrTable = document.createElement('table');
   document.body.appendChild(upgradeBeforeSsrTable);
   upgradeBeforeSsrTable.insertAdjacentHTML('beforeend',
@@ -492,17 +514,36 @@ function runUpgradeTest(customElement, title, step) {
   if (step === 0)
     customElements.define(customElement.tagName, customElement);
 
-  const jsxfn = function(){<my-custom-element-beforessr setter="foo" />};
-  const [stableSsr, patchedSsr, preactSsr] = renderToStringAllFrameworks(jsxfn);
+  const jsxfn = function(){<WrapperComponent><replace-me setter="foo" /></WrapperComponent>};
+  const jsxstr = jsxRemoveFn(jsxfn).replace('replace-me', customElement.tagName);
+  const jsxfnasdf = function(){<WrapperComponent><my-custom-element-beforessr setter="foo" /></WrapperComponent>};
+  const jsxstrasdf = jsxRemoveFn(jsxfnasdf);
+  console.log('jsxstr: ' + jsxstr);
+  console.log('jsxstrasdf: ' + jsxstrasdf);
+
+  window.h = ReactStable.createElement;
+  window.WrapperComponent = StableWrapper;
+  const asdf = eval(jsxstr);
+  const stableSsr = ReactDOMServerStable.renderToString(eval(jsxstr));
+  window.h = ReactPatched.createElement;
+  window.WrapperComponent = PatchedWrapper;
+  const patchedSsr = ReactDOMServerPatched.renderToString(eval(jsxstr));
+  window.h = preact.createElement;
+  window.WrapperComponent = PreactWrapper;
+  const preactSsr = preactRenderToString(eval(jsxstr));
+  window.h = undefined;
+  window.WrapperComponent = undefined;
+
+
   const stableRoot = document.createElement('div');
   const patchedRoot = document.createElement('div');
   const preactRoot = document.createElement('div');
   stableRoot.innerHTML = stableSsr;
   patchedRoot.innerHTML = patchedSsr;
   preactRoot.innerHTML = preactSsr;
-  const stableCE = stableRoot.querySelector(tagName);
-  const patchedCE = stableRoot.querySelector(tagName);
-  const preactCE = stableRoot.querySelector(tagName);
+  const stableCE = stableRoot.querySelector(customElement.tagName);
+  const patchedCE = stableRoot.querySelector(customElement.tagName);
+  const preactCE = stableRoot.querySelector(customElement.tagName);
 
   function appendUpdate(title) {
     const preTitleText = customElements.get(customElement.tagName)
@@ -510,7 +551,7 @@ function runUpgradeTest(customElement, title, step) {
       : 'CE not upgraded yet<br>';
     upgradeBeforeSsrTbody.insertAdjacentHTML('beforeend',
       `<tr>
-        <td>${preTitleText}{title}</td>
+        <td>${preTitleText}${title}</td>
         <td class=stable>attribute: ${JSON.stringify(stableCE.getAttribute('setter'))}<br>property: ${JSON.stringify(stableCE.setter)}</td>
         <td class=patched>attribute: ${JSON.stringify(patchedCE.getAttribute('setter'))}<br>property: ${JSON.stringify(patchedCE.setter)}</td>
         <td class=preact>attribute: ${JSON.stringify(preactCE.getAttribute('setter'))}<br>property: ${JSON.stringify(preactCE.setter)}</td>
@@ -522,34 +563,34 @@ function runUpgradeTest(customElement, title, step) {
   if (step === 1)
     customElements.define(customElement.tagName, customElement);
 
-  const str = jsxRemoveFn(jsxfn);
   window.h = ReactStable.createElement;
-  const stableComponent = eval(str);
-  ReactDOMStable.hydrate(stableComponent, stableRoot);
+  window.WrapperComponent = StableWrapper;
+  ReactDOMStable.hydrate(eval(jsxstr), stableRoot);
   window.h = ReactPatched.createElement;
-  const patchedComponent = eval(str);
-  ReactDOMPatched.hydrate(patchedComponent, patchedRoot);
+  window.WrapperComponent = PatchedWrapper;
+  ReactDOMPatched.hydrate(eval(jsxstr), patchedRoot);
   window.h = preact.createElement;
-  const preactComponent = eval(str);
-  preact.hydrate(preactComponent, preactRoot);
+  window.WrapperComponent = PreactWrapper;
+  preact.hydrate(eval(jsxstr), preactRoot);
   window.h = undefined;
+  window.WrapperComponent = undefined;
 
   appendUpdate(`After hydration, before forceUpdate`);
 
   if (step === 2)
     customElements.define(customElement.tagName, customElement);
 
-  stableComponent.forceUpdate();
-  patchedComponent.forceUpdate();
-  preactComponent.forceUpdate();
+  stableWrapper.forceUpdate();
+  patchedWrapper.forceUpdate();
+  preactWrapper.forceUpdate();
 
   appendUpdate(`After forceUpdate`);
-}
 
-// 1. upgradeBeforeSsr
-// 2. upgradeBeforeHydrate
-// 3. upgradeBeforeRender
-// 4. upgradeLast
+  if (step === 3) {
+    customElements.define(customElement.tagName, customElement);
+    appendUpdate(`After upgrade after forceUpdate`);
+  }
+}
 
 document.querySelectorAll('tbody').forEach(tbody => {
   tbody.querySelectorAll('tr').forEach(tr => {

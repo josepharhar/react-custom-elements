@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "build": "babel --presets=@babel/preset-react script.jsx --out-file build/script.js",
-    "buildwatch": "babel -w --presets=@babel/preset-react script.jsx --out-file build/script.js"
+    "build": "babel --presets=@babel/preset-react script.jsx --plugins=@babel/plugin-proposal-class-properties --out-file build/script.js",
+    "buildwatch": "babel -w --presets=@babel/preset-react script.jsx --plugins=@babel/plugin-proposal-class-properties --out-file build/script.js"
   },
   "dependencies": {
     "@babel/cli": "^7.12.10",
