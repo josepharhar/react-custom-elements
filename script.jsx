@@ -424,12 +424,59 @@ addRenderToStringTest(
 
 document.body.insertAdjacentHTML('beforeend',
   `<h3>Upgrade, SSR, hydration, and render</h3>
-  <p>This section throws custom element upgrade at various points in the<br>
-  SSR lifecycle and examines what the effect is on the custom element.</p>`);
+<p>This section throws custom element upgrade at various points in the<br>
+SSR lifecycle and examines what the effect is on the custom element.<br>
+The steps in the 'lifecycle' run here are:<br>
+1. Set innerHTML to SSR output from renderToString<br>
+2. Hydrate<br>
+3. Call forceUpdate on the component passed to hydrate
+</p>`);
 
-{
-  document.body.insertAdjacentHTML('beforeend',
-    `<h4>Upgrade before SSR</h4>`);
+// 1. SSR
+// 2. Hydration
+// 3. forceUpdate
+
+class MyCustomElementBeforeSsr extends HTMLElement {
+  static tagName = 'my-custom-element-beforessr';
+  get setter() { return this._setter; }
+  set setter(newValue) { this._setter = newValue; }
+};
+class MyCustomElementBeforeHydration extends HTMLElement {
+  static tagName = 'my-custom-element-beforehydration';
+  get setter() { return this._setter; }
+  set setter(newValue) { this._setter = newValue; }
+};
+class MyCustomElementBeforeForceUpdate extends HTMLElement {
+  static tagName = 'my-custom-element-beforeforceupdate';
+  get setter() { return this._setter; }
+  set setter(newValue) { this._setter = newValue; }
+};
+class MyCustomElementAfterForceUpdate extends HTMLElement {
+  static tagName = 'my-custom-element-afterforceupdate';
+  get setter() { return this._setter; }
+  set setter(newValue) { this._setter = newValue; }
+};
+
+runUpgradeTest(
+  MyCustomElementBeforeSsr,
+  'Upgrade before innerHTML = renderToString',
+  0);
+runUpgradeTest(
+  MyCustomElementBeforeHydration,
+  'Upgrade before hydration',
+  1);
+runUpgradeTest(
+  MyCustomElementBeforeForceUpdate,
+  'Upgrade before forceUpdate',
+  2);
+runUpgradeTest(
+  MyCustomElementAfterForceUpdate,
+  'Upgrade after forceUpdate',
+  3);
+
+
+function runUpgradeTest(customElement, title, step) {
+  document.body.insertAdjacentHTML('beforeend', title);
   const upgradeBeforeSsrTable = document.createElement('table');
   document.body.appendChild(upgradeBeforeSsrTable);
   upgradeBeforeSsrTable.insertAdjacentHTML('beforeend',
@@ -442,13 +489,9 @@ document.body.insertAdjacentHTML('beforeend',
   const upgradeBeforeSsrTbody = document.createElement('tbody');
   upgradeBeforeSsrTable.appendChild(upgradeBeforeSsrTbody);
 
-  class MyCustomElementBeforeSsr extends HTMLElement {
-    get setter() { return this._setter; }
-    set setter(newValue) { this._setter = newValue; }
-  };
+  if (step === 0)
+    customElements.define(customElement.tagName, customElement);
 
-  const tagName = 'my-custom-element-beforessr';
-  customElements.define(tagName, MyCustomElementBeforeSsr);
   const jsxfn = function(){<my-custom-element-beforessr setter="foo" />};
   const [stableSsr, patchedSsr, preactSsr] = renderToStringAllFrameworks(jsxfn);
   const stableRoot = document.createElement('div');
@@ -462,28 +505,46 @@ document.body.insertAdjacentHTML('beforeend',
   const preactCE = stableRoot.querySelector(tagName);
 
   function appendUpdate(title) {
+    const preTitleText = customElements.get(customElement.tagName)
+      ? 'CE upgraded<br>'
+      : 'CE not upgraded yet<br>';
     upgradeBeforeSsrTbody.insertAdjacentHTML('beforeend',
       `<tr>
-        <td>${title}</td>
+        <td>${preTitleText}{title}</td>
         <td class=stable>attribute: ${JSON.stringify(stableCE.getAttribute('setter'))}<br>property: ${JSON.stringify(stableCE.setter)}</td>
         <td class=patched>attribute: ${JSON.stringify(patchedCE.getAttribute('setter'))}<br>property: ${JSON.stringify(patchedCE.setter)}</td>
         <td class=preact>attribute: ${JSON.stringify(preactCE.getAttribute('setter'))}<br>property: ${JSON.stringify(preactCE.setter)}</td>
       </tr>`);
   }
-  appendUpdate(`CE Defined<br>After SSR, before hydration`);
+
+  appendUpdate(`After innerHTML=renderToString, before hydration`);
+
+  if (step === 1)
+    customElements.define(customElement.tagName, customElement);
 
   const str = jsxRemoveFn(jsxfn);
   window.h = ReactStable.createElement;
-  ReactDOMStable.hydrate(eval(str), stableRoot);
+  const stableComponent = eval(str);
+  ReactDOMStable.hydrate(stableComponent, stableRoot);
   window.h = ReactPatched.createElement;
-  ReactDOMPatched.hydrate(eval(str), patchedRoot);
+  const patchedComponent = eval(str);
+  ReactDOMPatched.hydrate(patchedComponent, patchedRoot);
   window.h = preact.createElement;
-  preact.hydrate(eval(str), preactRoot);
+  const preactComponent = eval(str);
+  preact.hydrate(preactComponent, preactRoot);
   window.h = undefined;
 
-  appendUpdate(`CE Defined<br>After hydration, before render`);
-}
+  appendUpdate(`After hydration, before forceUpdate`);
 
+  if (step === 2)
+    customElements.define(customElement.tagName, customElement);
+
+  stableComponent.forceUpdate();
+  patchedComponent.forceUpdate();
+  preactComponent.forceUpdate();
+
+  appendUpdate(`After forceUpdate`);
+}
 
 // 1. upgradeBeforeSsr
 // 2. upgradeBeforeHydrate
