@@ -484,7 +484,7 @@ runUpgradeTest(
   MyCustomElementBeforeSsr,
   'Upgrade before innerHTML = renderToString',
   0);
-/*runUpgradeTest(
+runUpgradeTest(
   MyCustomElementBeforeHydration,
   'Upgrade before hydration',
   1);
@@ -495,7 +495,7 @@ runUpgradeTest(
 runUpgradeTest(
   MyCustomElementAfterForceUpdate,
   'Upgrade after forceUpdate',
-  3);*/
+  3);
 
 function runUpgradeTest(customElement, title, step) {
   document.body.insertAdjacentHTML('beforeend', `<h4>${title}</h4>`);
@@ -533,8 +533,8 @@ function runUpgradeTest(customElement, title, step) {
   const stableSsr = ReactDOMServerStable.renderToString(eval(jsxstr));
   window.h = ReactPatched.createElement;
   window.WrapperComponent = PatchedWrapper;
-  //const patchedSsr = ReactDOMServerPatched.renderToString(eval(jsxstr));
-  const patchedSsr = ReactDOMServerPatched.renderToString(<WrapperComponent><my-custom-element-beforessr /></WrapperComponent>);
+  const patchedSsr = ReactDOMServerPatched.renderToString(eval(jsxstr));
+  //const patchedSsr = ReactDOMServerPatched.renderToString(<WrapperComponent><my-custom-element-beforessr /></WrapperComponent>);
   window.h = preact.createElement;
   window.WrapperComponent = PreactWrapper;
   const preactSsr = preactRenderToString(eval(jsxstr));
