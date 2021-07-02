@@ -446,8 +446,8 @@ addRenderToStringTest(
   function(){<my-custom-element oncustomeventcapture="foo" />});
 
 document.body.insertAdjacentHTML('beforeend',
-  `<h3>Upgrade, SSR, hydration, and render</h3>
-<p>This section throws custom element upgrade at various points in the<br>
+  `<h3>Hydration</h3>
+<p>This section runs custom element upgrade at various points in the<br>
 SSR lifecycle and examines what the effect is on the custom element.<br>
 The steps in the 'lifecycle' run here are:<br>
 1. Set innerHTML to SSR output from renderToString<br>
@@ -461,22 +461,22 @@ The steps in the 'lifecycle' run here are:<br>
 
 class MyCustomElementBeforeSsr extends HTMLElement {
   static tagName = 'my-custom-element-beforessr';
-  get setter() { return this._setter || 'setter default value'; }
+  get setter() { return this._setter || 'custom element setter default value'; }
   set setter(newValue) { this._setter = newValue; }
 };
 class MyCustomElementBeforeHydration extends HTMLElement {
   static tagName = 'my-custom-element-beforehydration';
-  get setter() { return this._setter || 'setter default value'; }
+  get setter() { return this._setter || 'custom element setter default value'; }
   set setter(newValue) { this._setter = newValue; }
 };
 class MyCustomElementBeforeForceUpdate extends HTMLElement {
   static tagName = 'my-custom-element-beforeforceupdate';
-  get setter() { return this._setter || 'setter default value'; }
+  get setter() { return this._setter || 'custom element setter default value'; }
   set setter(newValue) { this._setter = newValue; }
 };
 class MyCustomElementAfterForceUpdate extends HTMLElement {
   static tagName = 'my-custom-element-afterforceupdate';
-  get setter() { return this._setter || 'setter default value'; }
+  get setter() { return this._setter || 'custom element setter default value'; }
   set setter(newValue) { this._setter = newValue; }
 };
 
@@ -524,20 +524,20 @@ function runUpgradeTest(customElement, title, step) {
   if (step === 0)
     upgrade();
 
-  const jsxfn = function(){<WrapperComponent><replace-me setter="foo" /></WrapperComponent>};
-  const jsxstr = jsxRemoveFn(jsxfn).replace('replace-me', customElement.tagName);
-  console.log('jsxstr: ' + jsxstr);
+  const ssrjsxfn = function(){<WrapperComponent><replace-me setter="ssr-value" /></WrapperComponent>};
+  const ssrjsxstr = jsxRemoveFn(ssrjsxfn).replace('replace-me', customElement.tagName);
+  //console.log('jsxstr: ' + jsxstr);
 
   window.h = ReactStable.createElement;
   window.WrapperComponent = StableWrapper;
-  const stableSsr = ReactDOMServerStable.renderToString(eval(jsxstr));
+  const stableSsr = ReactDOMServerStable.renderToString(eval(ssrjsxstr));
   window.h = ReactPatched.createElement;
   window.WrapperComponent = PatchedWrapper;
-  const patchedSsr = ReactDOMServerPatched.renderToString(eval(jsxstr));
+  const patchedSsr = ReactDOMServerPatched.renderToString(eval(ssrjsxstr));
   //const patchedSsr = ReactDOMServerPatched.renderToString(<WrapperComponent><my-custom-element-beforessr /></WrapperComponent>);
   window.h = preact.createElement;
   window.WrapperComponent = PreactWrapper;
-  const preactSsr = preactRenderToString(eval(jsxstr));
+  const preactSsr = preactRenderToString(eval(ssrjsxstr));
   window.h = undefined;
   window.WrapperComponent = undefined;
 
@@ -568,15 +568,18 @@ function runUpgradeTest(customElement, title, step) {
   if (step === 1)
     upgrade();
 
+  const hydrationjsxfn = function(){<WrapperComponent><replace-me setter="hydration-value" /></WrapperComponent>};
+  const hydrationjsxstr = jsxRemoveFn(hydrationjsxfn).replace('replace-me', customElement.tagName);
+
   window.h = ReactStable.createElement;
   window.WrapperComponent = StableWrapper;
-  ReactDOMStable.hydrate(eval(jsxstr), stableRoot);
+  ReactDOMStable.hydrate(eval(ssrjsxstr), stableRoot);
   window.h = ReactPatched.createElement;
   window.WrapperComponent = PatchedWrapper;
-  ReactDOMPatched.hydrate(eval(jsxstr), patchedRoot);
+  ReactDOMPatched.hydrate(eval(ssrjsxstr), patchedRoot);
   window.h = preact.createElement;
   window.WrapperComponent = PreactWrapper;
-  preact.hydrate(eval(jsxstr), preactRoot);
+  preact.hydrate(eval(ssrjsxstr), preactRoot);
   window.h = undefined;
   window.WrapperComponent = undefined;
 
