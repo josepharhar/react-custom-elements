@@ -491,12 +491,13 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
       super();
       window.delayedStableWrapper = this;
       this.state = {
+        setter: 'JSX value',
         passprop: 'initial value'
       };
     }
     render() {
       return <my-custom-element-delayed-define
-        setter={"JSX value"}
+        setter={this.state.setter}
         passprop={this.state.passprop} />;
     }
   };
@@ -505,12 +506,13 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
       super();
       window.delayedPatchedWrapper = this;
       this.state = {
+        setter: 'JSX value',
         passprop: 'initial value'
       };
     }
     render() {
       return <my-custom-element-delayed-define
-        setter={"JSX value"}
+        setter={this.state.setter}
         passprop={this.state.passprop} />;
     }
   };
@@ -519,12 +521,13 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
       super();
       window.delayedPreactWrapper = this;
       this.state = {
+        setter: 'JSX value',
         passprop: 'initial value'
       };
     }
     render() {
       return <my-custom-element-delayed-define
-        setter={"JSX value"}
+        setter={this.state.setter}
         passprop={this.state.passprop} />;
     }
   };
@@ -567,19 +570,19 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
     renderStep('Custom element defined');
 
     window.h = ReactStable.createElement;
-    stableComponent.setState({passprop: 'forceUpdate'});
+    stableComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
     stableComponent.forceUpdate();
     if (stableElement.getAttribute('passprop') !== 'forceUpdate') {
       console.error('setState didnt work on ReactStable', stableComponent, stableElement);
     }
     window.h = ReactPatched.createElement;
-    patchedComponent.setState({passprop: 'forceUpdate'});
+    patchedComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
     patchedComponent.forceUpdate();
     if (patchedElement.getAttribute('passprop') !== 'forceUpdate') {
       console.error('setState didnt work on ReactPatched', patchedComponent, patchedElement);
     }
     window.h = preact.createElement;
-    window.delayedPreactWrapper.setState({passprop: 'forceUpdate'});
+    window.delayedPreactWrapper.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
     window.delayedPreactWrapper.forceUpdate();
     // oh boy, preact does some sort of async stuff that requires window.h to stay defined until... some future point?
     setTimeout(() => {
