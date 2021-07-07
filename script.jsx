@@ -464,21 +464,149 @@ addRenderToStringTest(
 
 // TODO add section for rendering and upgrading in various orders/scenarios.
 document.body.insertAdjacentHTML('beforeend',
-`<h2>Rendering before Upgrading</h2>`);
+`<h2>Rendering before Upgrading</h2>
+<p>
+This section renders custom elements before they are upgraded and checks to see
+how the JSX attribute is applied to the element's attribute and property of the
+same name. Then it upgrades the custom element, logs the values again, then calls
+setState() and forceUpdate() in an attempt to get react/preact to look again, and logs again.
+</p>`);
 
 // 1. Render
 // 2. Upgrade
-// 3. Render again
+// 3. Render again...? Or just compare with a regular render after upgrade?
 
-class MyCustomElementDelayedDefine extends HTMLElement {
-  static tagName = 'my-custom-element-delayed-define';
-  get setter() { return this._setter || 'custom element setter default value'; }
-  set setter(newValue) { this._setter = newValue; }
-};
+{
+  const table = document.createElement('table');
+  document.body.appendChild(table);
 
-//ReactDOM.render
-/*const [stable, patched, preact] = renderAllFrameworks(function(){<my-custom-element
-  setter={"JSX value"} />});*/
+  class MyCustomElementDelayedDefine extends HTMLElement {
+    static tagName = 'my-custom-element-delayed-define';
+    get setter() { return this._setter || 'custom element setter default value'; }
+    set setter(newValue) { this._setter = newValue; }
+  };
+
+  class DelayedStableWrapper extends ReactStable.Component {
+    constructor() {
+      super();
+      window.delayedStableWrapper = this;
+      this.state = {
+        passprop: 'initial value'
+      };
+    }
+    render() {
+      return <my-custom-element-delayed-define
+        setter={"JSX value"}
+        passprop={this.state.passprop} />;
+    }
+  };
+  class DelayedPatchedWrapper extends ReactPatched.Component {
+    constructor() {
+      super();
+      window.delayedPatchedWrapper = this;
+      this.state = {
+        passprop: 'initial value'
+      };
+    }
+    render() {
+      return <my-custom-element-delayed-define
+        setter={"JSX value"}
+        passprop={this.state.passprop} />;
+    }
+  };
+  class DelayedPreactWrapper extends preact.Component {
+    constructor() {
+      super();
+      window.delayedPreactWrapper = this;
+      this.state = {
+        passprop: 'initial value'
+      };
+    }
+    render() {
+      return <my-custom-element-delayed-define
+        setter={"JSX value"}
+        passprop={this.state.passprop} />;
+    }
+  };
+
+  window.h = ReactStable.createElement;
+  let stableWrapperDiv = document.createElement('div');
+  let stableComponent = ReactDOMStable.render(<DelayedStableWrapper />, stableWrapperDiv);
+  let stableElement = stableWrapperDiv.firstChild;
+  window.h = ReactPatched.createElement;
+  let patchedWrapperDiv = document.createElement('div');
+  let patchedComponent = ReactDOMPatched.render(<DelayedPatchedWrapper />, patchedWrapperDiv);
+  let patchedElement = patchedWrapperDiv.firstChild;
+  window.h = preact.createElement;
+  let preactWrapperDiv = document.createElement('div');
+  let preactComponent = preact.render(<DelayedPreactWrapper />, preactWrapperDiv);
+  let preactElement = preactWrapperDiv.firstChild;
+  window.h = undefined;
+
+  table.insertAdjacentHTML('beforeend',
+    `<thead><tr>
+      <td>Step</td>
+      <td>React Output</td>
+      <td>React Patched Output</td>
+      <td>Preact Output</td>
+    </tr></thead>`);
+
+  function renderStep(description) {
+    table.insertAdjacentHTML('beforeend',
+      `<tr>
+        <td>${description}</td>
+        <td class=stable>attribute: ${JSON.stringify(stableElement.getAttribute('setter'))}<br>property: ${JSON.stringify(stableElement.setter)}</td>
+        <td class=patched>attribute: ${JSON.stringify(patchedElement.getAttribute('setter'))}<br>property: ${JSON.stringify(patchedElement.setter)}</td>
+        <td class=preact>attribute: ${JSON.stringify(preactElement.getAttribute('setter'))}<br>property: ${JSON.stringify(preactElement.setter)}</td>
+      </tr>`);
+  }
+
+  renderStep('Initial render(), no upgrade yet');
+  customElements.define(MyCustomElementDelayedDefine.tagName, MyCustomElementDelayedDefine);
+  setTimeout(() => {
+    renderStep('Custom element defined');
+
+    window.h = ReactStable.createElement;
+    stableComponent.setState({passprop: 'forceUpdate'});
+    stableComponent.forceUpdate();
+    if (stableElement.getAttribute('passprop') !== 'forceUpdate') {
+      console.error('setState didnt work on ReactStable', stableComponent, stableElement);
+    }
+    window.h = ReactPatched.createElement;
+    patchedComponent.setState({passprop: 'forceUpdate'});
+    patchedComponent.forceUpdate();
+    if (patchedElement.getAttribute('passprop') !== 'forceUpdate') {
+      console.error('setState didnt work on ReactPatched', patchedComponent, patchedElement);
+    }
+    window.h = preact.createElement;
+    window.delayedPreactWrapper.setState({passprop: 'forceUpdate'});
+    window.delayedPreactWrapper.forceUpdate();
+    // oh boy, preact does some sort of async stuff that requires window.h to stay defined until... some future point?
+    setTimeout(() => {
+      if (preactElement.getAttribute('passprop') !== 'forceUpdate') {
+        console.error('setState didnt work on preact', preactElement, window.delayedPreactWrapper);
+      }
+      //window.h = undefined;
+      renderStep('After setState() and forceUpdate()');
+
+      window.h = ReactStable.createElement;
+      stableWrapperDiv = document.createElement('div');
+      stableComponent = ReactDOMStable.render(<DelayedStableWrapper />, stableWrapperDiv);
+      stableElement = stableWrapperDiv.firstChild;
+      window.h = ReactPatched.createElement;
+      patchedWrapperDiv = document.createElement('div');
+      patchedComponent = ReactDOMPatched.render(<DelayedPatchedWrapper />, patchedWrapperDiv);
+      patchedElement = patchedWrapperDiv.firstChild;
+      window.h = preact.createElement;
+      preactWrapperDiv = document.createElement('div');
+      preactComponent = preact.render(<DelayedPreactWrapper />, preactWrapperDiv);
+      preactElement = preactWrapperDiv.firstChild;
+      window.h = undefined;
+      renderStep('Fresh, separate render() with defined CE');
+    }, 0);
+
+  }, 0);
+}
 
 
 document.body.insertAdjacentHTML('beforeend',
@@ -624,9 +752,13 @@ function runHydrationTest(customElement, title, step) {
   if (step === 2)
     upgrade();
 
+  window.h = ReactStable.createElement;
   stableWrapper.forceUpdate();
+  window.h = ReactPatched.createElement;
   patchedWrapper.forceUpdate();
+  window.h = preact.createElement;
   preactWrapper.forceUpdate();
+  window.h = undefined;
 
   appendUpdate(`After forceUpdate`);
 
@@ -636,35 +768,39 @@ function runHydrationTest(customElement, title, step) {
   }
 }
 
-document.querySelectorAll('tbody').forEach(tbody => {
-  tbody.querySelectorAll('tr').forEach(tr => {
-    const stable = tr.querySelector('.stable');
-    const patched = tr.querySelector('.patched');
-    const preact = tr.querySelector('.preact');
-    if (!stable || !patched || !preact) {
-      console.log('bad row:', tr);
-      return;
-    }
+setTimeout(() => {
+setTimeout(() => {
+  document.querySelectorAll('tbody').forEach(tbody => {
+    tbody.querySelectorAll('tr').forEach(tr => {
+      const stable = tr.querySelector('.stable');
+      const patched = tr.querySelector('.patched');
+      const preact = tr.querySelector('.preact');
+      if (!stable || !patched || !preact) {
+        console.log('bad row:', tr);
+        return;
+      }
 
-    const stableMatchesPatched = stable.textContent === patched.textContent;
-    const patchedMatchesPreact = patched.textContent === preact.textContent;
+      const stableMatchesPatched = stable.textContent === patched.textContent;
+      const patchedMatchesPreact = patched.textContent === preact.textContent;
 
-    if (!stableMatchesPatched && !patchedMatchesPreact) {
-      stable.classList.add('error');
-      patched.classList.add('error');
-      preact.classList.add('error');
-    } else if (!stableMatchesPatched) {
-      stable.classList.add('warning');
-      patched.classList.add('warning');
-      preact.classList.add('good');
-    } else if (!patchedMatchesPreact) {
-      stable.classList.add('good');
-      patched.classList.add('warning');
-      preact.classList.add('warning');
-    } else {
-      stable.classList.add('good');
-      patched.classList.add('good');
-      preact.classList.add('good');
-    }
+      if (!stableMatchesPatched && !patchedMatchesPreact) {
+        stable.classList.add('error');
+        patched.classList.add('error');
+        preact.classList.add('error');
+      } else if (!stableMatchesPatched) {
+        stable.classList.add('warning');
+        patched.classList.add('warning');
+        preact.classList.add('good');
+      } else if (!patchedMatchesPreact) {
+        stable.classList.add('good');
+        patched.classList.add('warning');
+        preact.classList.add('warning');
+      } else {
+        stable.classList.add('good');
+        patched.classList.add('good');
+        preact.classList.add('good');
+      }
+    });
   });
-});
+}, 0);
+}, 0);
