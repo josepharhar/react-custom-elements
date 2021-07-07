@@ -24,8 +24,24 @@ class PreactWrapper extends preact.Component {
 
 
 document.body.insertAdjacentHTML('beforeend',
-  `<h3>Properties and Attributes</h3>
-  <div>my-custom-element has a property setter registered for "setter" and "onsetter"</div>`);
+  `<h2>Properties and Attributes</h2>
+  <p></p>
+  <div>
+    This section renders the JSX shown in the "JSX" column,
+    then runs the "Output Function" to produce the results in the three "Output" columns.<br>
+    my-custom-element is already upgraded before calling render().<br>
+    my-custom-element has property setters registered for "setter" and "onsetter". Here is the source:
+  </div>
+  <div id=my-custom-element-src style="display:inline-block" class="code good"></div>
+  <p></p>`);
+document.getElementById('my-custom-element-src').textContent =
+`class MyCustomElement extends HTMLElement {
+  get setter() { return this._setter || 'setter default value'; }
+  set setter(newValue) { this._setter = newValue; }
+
+  get onsetter() { return this._onsetter || 'setter default value'; }
+  set onsetter(newValue) { this._onsetter = newValue; }
+}`;
 
 const table = document.createElement('table');
 document.body.appendChild(table);
@@ -218,7 +234,7 @@ renderPropAttr(
   `<my-custom-element onnosetter="foo" />`,
   'onnosetter');
 
-document.body.insertAdjacentHTML('beforeend', `<h3>Event Handlers</h3>`);
+document.body.insertAdjacentHTML('beforeend', `<h2>Event Handlers</h2>`);
 const eventTable = document.createElement('table');
 document.body.appendChild(eventTable);
 eventTable.insertAdjacentHTML('beforeend',
@@ -293,7 +309,7 @@ eventTable.appendChild(eventTbody);
     </td>`);
 }
 
-document.body.insertAdjacentHTML('beforeend', `<h3>renderToString</h3>`);
+document.body.insertAdjacentHTML('beforeend', `<h2>renderToString</h2>`);
 const renderToStringTable = document.createElement('table');
 document.body.appendChild(renderToStringTable);
 renderToStringTable.insertAdjacentHTML('beforeend',
@@ -445,9 +461,29 @@ addRenderToStringTest(
   `<my-custom-element oncustomeventcapture="foo" />`,
   function(){<my-custom-element oncustomeventcapture="foo" />});
 
+
+// TODO add section for rendering and upgrading in various orders/scenarios.
 document.body.insertAdjacentHTML('beforeend',
-  `<h3>Hydration</h3>
-<p>This section runs custom element upgrade at various points in the<br>
+`<h2>Rendering before Upgrading</h2>`);
+
+// 1. Render
+// 2. Upgrade
+// 3. Render again
+
+class MyCustomElementDelayedDefine extends HTMLElement {
+  static tagName = 'my-custom-element-delayed-define';
+  get setter() { return this._setter || 'custom element setter default value'; }
+  set setter(newValue) { this._setter = newValue; }
+};
+
+//ReactDOM.render
+/*const [stable, patched, preact] = renderAllFrameworks(function(){<my-custom-element
+  setter={"JSX value"} />});*/
+
+
+document.body.insertAdjacentHTML('beforeend',
+`<h2>Hydration</h2>
+<p>This section runs custom element upgrade at various points in the
 SSR lifecycle and examines what the effect is on the custom element.<br>
 The steps in the 'lifecycle' run here are:<br>
 1. Set innerHTML to SSR output from renderToString<br>
@@ -480,24 +516,24 @@ class MyCustomElementAfterForceUpdate extends HTMLElement {
   set setter(newValue) { this._setter = newValue; }
 };
 
-runUpgradeTest(
+runHydrationTest(
   MyCustomElementBeforeSsr,
   'Upgrade before innerHTML = renderToString',
   0);
-runUpgradeTest(
+runHydrationTest(
   MyCustomElementBeforeHydration,
   'Upgrade before hydration',
   1);
-runUpgradeTest(
+runHydrationTest(
   MyCustomElementBeforeForceUpdate,
   'Upgrade before forceUpdate',
   2);
-runUpgradeTest(
+runHydrationTest(
   MyCustomElementAfterForceUpdate,
   'Upgrade after forceUpdate',
   3);
 
-function runUpgradeTest(customElement, title, step) {
+function runHydrationTest(customElement, title, step) {
   document.body.insertAdjacentHTML('beforeend', `<h4>${title}</h4>`);
   const upgradeTable = document.createElement('table');
   document.body.appendChild(upgradeTable);
