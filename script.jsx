@@ -1,27 +1,8 @@
 /** @jsx h */
 
-class StableWrapper extends ReactStable.Component {
-  constructor() {
-    super();
-    window.stableWrapper = this;
-  }
-  render() { return this.props.children; }
-};
-class PatchedWrapper extends ReactPatched.Component {
-  constructor() {
-    super();
-    window.patchedWrapper = this;
-  }
-  render() { return this.props.children; }
-};
-class PreactWrapper extends preact.Component {
-  constructor() {
-    super();
-    window.preactWrapper = this;
-  }
-  render() { return this.props.children; }
-};
-
+async function setTimeoutPromise() {
+  return new Promise(resolve => setTimeout(resolve, 0));
+}
 
 document.body.insertAdjacentHTML('beforeend',
   `<h2>Properties and Attributes</h2>
@@ -234,22 +215,25 @@ renderPropAttr(
   `<my-custom-element onnosetter="foo" />`,
   'onnosetter');
 
-document.body.insertAdjacentHTML('beforeend', `<h2>Event Handlers</h2>`);
-const eventTable = document.createElement('table');
-document.body.appendChild(eventTable);
-eventTable.insertAdjacentHTML('beforeend',
-  `<thead>
-    <tr>
-      <td>Test Description</td>
-      <td>React Output</td>
-      <td>React Patched Output</td>
-      <td>Preact Output</td>
-    </tr>
-  </thead>`);
-const eventTbody = document.createElement('tbody');
-eventTable.appendChild(eventTbody);
+prettifyTable(table);
+
 
 {
+  document.body.insertAdjacentHTML('beforeend', `<h2>Event Handlers</h2>`);
+  const eventTable = document.createElement('table');
+  document.body.appendChild(eventTable);
+  eventTable.insertAdjacentHTML('beforeend',
+    `<thead>
+      <tr>
+        <td>Test Description</td>
+        <td>React Output</td>
+        <td>React Patched Output</td>
+        <td>Preact Output</td>
+      </tr>
+    </thead>`);
+  const eventTbody = document.createElement('tbody');
+  eventTable.appendChild(eventTbody);
+
   const [stable, patched, preact] = renderAllFrameworks(function(){<my-custom-element
     oncustomevent={event => event.target.oncustomeventfired = true}
     oncustomeventCapture={event => event.target.oncustomeventcapturefired = true}
@@ -307,6 +291,8 @@ eventTable.appendChild(eventTbody);
       <td class="code patched">${isClickHandlerRun(patched)}</td>
       <td class="code preact">${isClickHandlerRun(preact)}</td>
     </td>`);
+
+  prettifyTable(eventTable);
 }
 
 document.body.insertAdjacentHTML('beforeend', `<h2>renderToString</h2>`);
@@ -461,6 +447,8 @@ addRenderToStringTest(
   `<my-custom-element oncustomeventcapture="foo" />`,
   function(){<my-custom-element oncustomeventcapture="foo" />});
 
+prettifyTable(renderToStringTable);
+
 
 // TODO add section for rendering and upgrading in various orders/scenarios.
 document.body.insertAdjacentHTML('beforeend',
@@ -476,13 +464,13 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
 // 2. Upgrade
 // 3. Render again...? Or just compare with a regular render after upgrade?
 
-{
+(async () => {
   const table = document.createElement('table');
   document.body.appendChild(table);
 
   class MyCustomElementDelayedDefine extends HTMLElement {
     static tagName = 'my-custom-element-delayed-define';
-    get setter() { return this._setter || 'custom element setter default value'; }
+    get setter() { return this._setter || 'CE default getter'; }
     set setter(newValue) { this._setter = newValue; }
   };
 
@@ -526,9 +514,10 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
       };
     }
     render() {
-      return <my-custom-element-delayed-define
-        setter={this.state.setter}
-        passprop={this.state.passprop} />;
+      return preact.createElement('my-custom-element-delayed-define', {
+        setter: this.state.setter,
+        passprop: this.state.passprop
+      });
     }
   };
 
@@ -566,214 +555,282 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
 
   renderStep('Initial render(), no upgrade yet');
   customElements.define(MyCustomElementDelayedDefine.tagName, MyCustomElementDelayedDefine);
-  setTimeout(() => {
-    renderStep('Custom element defined');
+  customElements.upgrade(stableElement);
+  customElements.upgrade(patchedElement);
+  customElements.upgrade(preactElement);
+
+  renderStep('Custom element defined');
+
+  window.h = ReactStable.createElement;
+  stableComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
+  stableComponent.forceUpdate();
+  if (stableElement.getAttribute('passprop') !== 'forceUpdate') {
+    console.error('setState didnt work on ReactStable', stableComponent, stableElement);
+  }
+  window.h = ReactPatched.createElement;
+  patchedComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
+  patchedComponent.forceUpdate();
+  if (patchedElement.getAttribute('passprop') !== 'forceUpdate') {
+    console.error('setState didnt work on ReactPatched', patchedComponent, patchedElement);
+  }
+  window.h = preact.createElement;
+  window.delayedPreactWrapper.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
+  window.delayedPreactWrapper.forceUpdate();
+  window.h = undefined;
+
+  // preact does async setState, this setTimeout will wait for it.
+  await setTimeoutPromise();
+
+  if (preactElement.getAttribute('passprop') !== 'forceUpdate') {
+    console.error('setState didnt work on preact', preactElement, window.delayedPreactWrapper);
+  }
+  renderStep('After setState() and forceUpdate()');
+
+  window.h = ReactStable.createElement;
+  stableWrapperDiv = document.createElement('div');
+  stableComponent = ReactDOMStable.render(<DelayedStableWrapper />, stableWrapperDiv);
+  stableElement = stableWrapperDiv.firstChild;
+  window.h = ReactPatched.createElement;
+  patchedWrapperDiv = document.createElement('div');
+  patchedComponent = ReactDOMPatched.render(<DelayedPatchedWrapper />, patchedWrapperDiv);
+  patchedElement = patchedWrapperDiv.firstChild;
+  window.h = preact.createElement;
+  preactWrapperDiv = document.createElement('div');
+  preactComponent = preact.render(<DelayedPreactWrapper />, preactWrapperDiv);
+  preactElement = preactWrapperDiv.firstChild;
+  window.h = undefined;
+  renderStep('Fresh, separate render() with defined CE');
+
+  prettifyTable(table);
+})();
+
+
+(async () => {
+  document.body.insertAdjacentHTML('beforeend',
+  `<h2>Hydration</h2>
+  <p>This section runs custom element upgrade at various points in the
+  SSR lifecycle and examines what the effect is on the custom element.<br>
+  The steps in the 'lifecycle' run here are:<br>
+  1. Set innerHTML to SSR output from renderToString<br>
+  2. Hydrate<br>
+  3. Call setState() on the component wrapping the custom element to see where it applies the new value
+  </p>`);
+
+  // 1. SSR
+  // 2. Hydration
+  // 3. setState
+
+  class SSRStableComponent extends ReactStable.Component {
+    static tagName = 'default tagName';
+    constructor() {
+      super();
+      this.state = {
+        setter: 'JSX initial value',
+        passprop: 'initial value'
+      };
+      window.stableWrapper = this;
+    }
+    render() {
+      return h(SSRStableComponent.tagName, {
+        setter: this.state.setter,
+        passprop: this.state.passprop
+      });
+    }
+  };
+  class SSRPatchedComponent extends ReactPatched.Component {
+    static tagName = 'default tagName';
+    constructor() {
+      super();
+      this.state = {
+        setter: 'JSX initial value',
+        passprop: 'initial value'
+      };
+      window.patchedWrapper = this;
+    }
+    render() {
+      return h(SSRPatchedComponent.tagName, {
+        setter: this.state.setter,
+        passprop: this.state.passprop
+      });
+    }
+  };
+  class SSRPreactComponent extends preact.Component {
+    static tagName = 'default tagName';
+    constructor() {
+      super();
+      this.state = {
+        setter: 'JSX initial value',
+        passprop: 'initial value'
+      };
+      window.preactWrapper = this;
+    }
+    render() {
+      return preact.createElement(SSRPreactComponent.tagName, {
+        setter: this.state.setter,
+        passprop: this.state.passprop
+      });
+    }
+  };
+
+  class MyCustomElementBeforeSsr extends HTMLElement {
+    static tagName = 'my-custom-element-beforessr';
+    get setter() { return this._setter || 'CE default getter'; }
+    set setter(newValue) { this._setter = newValue; }
+  };
+  class MyCustomElementBeforeHydration extends HTMLElement {
+    static tagName = 'my-custom-element-beforehydration';
+    get setter() { return this._setter || 'CE default getter'; }
+    set setter(newValue) { this._setter = newValue; }
+  };
+  class MyCustomElementBeforeForceUpdate extends HTMLElement {
+    static tagName = 'my-custom-element-beforeforceupdate';
+    get setter() { return this._setter || 'CE default getter'; }
+    set setter(newValue) { this._setter = newValue; }
+  };
+  class MyCustomElementAfterForceUpdate extends HTMLElement {
+    static tagName = 'my-custom-element-afterforceupdate';
+    get setter() { return this._setter || 'CE default getter'; }
+    set setter(newValue) { this._setter = newValue; }
+  };
+
+  await runHydrationTest(
+    MyCustomElementBeforeSsr,
+    'Upgrade before innerHTML = renderToString',
+    0);
+  await runHydrationTest(
+    MyCustomElementBeforeHydration,
+    'Upgrade before hydration',
+    1);
+  await runHydrationTest(
+    MyCustomElementBeforeForceUpdate,
+    'Upgrade before setState',
+    2);
+  await runHydrationTest(
+    MyCustomElementAfterForceUpdate,
+    'Upgrade after setState',
+    3);
+
+  async function runHydrationTest(customElement, title, step) {
+    document.body.insertAdjacentHTML('beforeend', `<h4>${title}</h4>`);
+    const upgradeTable = document.createElement('table');
+    document.body.appendChild(upgradeTable);
+    upgradeTable.insertAdjacentHTML('beforeend',
+      `<thead><tr>
+        <td>Step</td>
+        <td>React Output</td>
+        <td>React Patched Output</td>
+        <td>Preact Output</td>
+      </tr></thead>`);
+    const upgradeTbody = document.createElement('tbody');
+    upgradeTable.appendChild(upgradeTbody);
+
+    const stableRoot = document.createElement('div');
+    const patchedRoot = document.createElement('div');
+    const preactRoot = document.createElement('div');
+    function upgrade() {
+      customElements.define(customElement.tagName, customElement);
+      customElements.upgrade(stableRoot);
+      customElements.upgrade(patchedRoot);
+      customElements.upgrade(preactRoot);
+    }
+
+    if (step === 0)
+      upgrade();
+
+    const ssrjsxfn = function(){<WrapperComponent><replace-me setter="ssr-value" /></WrapperComponent>};
+    const ssrjsxstr = jsxRemoveFn(ssrjsxfn).replace('replace-me', customElement.tagName);
+
+    SSRStableComponent.tagName = customElement.tagName;
+    SSRPatchedComponent.tagName = customElement.tagName;
+    SSRPreactComponent.tagName = customElement.tagName;
 
     window.h = ReactStable.createElement;
-    stableComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
-    stableComponent.forceUpdate();
-    if (stableElement.getAttribute('passprop') !== 'forceUpdate') {
-      console.error('setState didnt work on ReactStable', stableComponent, stableElement);
-    }
+    window.WrapperComponent = SSRStableComponent;
+    const stableSsr = ReactDOMServerStable.renderToString(eval(ssrjsxstr));
+
     window.h = ReactPatched.createElement;
-    patchedComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
-    patchedComponent.forceUpdate();
-    if (patchedElement.getAttribute('passprop') !== 'forceUpdate') {
-      console.error('setState didnt work on ReactPatched', patchedComponent, patchedElement);
-    }
+    window.WrapperComponent = SSRPatchedComponent;
+    const patchedSsr = ReactDOMServerPatched.renderToString(eval(ssrjsxstr));
+
     window.h = preact.createElement;
-    window.delayedPreactWrapper.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
-    window.delayedPreactWrapper.forceUpdate();
-    // oh boy, preact does some sort of async stuff that requires window.h to stay defined until... some future point?
-    setTimeout(() => {
-      if (preactElement.getAttribute('passprop') !== 'forceUpdate') {
-        console.error('setState didnt work on preact', preactElement, window.delayedPreactWrapper);
-      }
-      //window.h = undefined;
-      renderStep('After setState() and forceUpdate()');
+    window.WrapperComponent = SSRPreactComponent;
+    const preactSsr = preactRenderToString(eval(ssrjsxstr));
 
-      window.h = ReactStable.createElement;
-      stableWrapperDiv = document.createElement('div');
-      stableComponent = ReactDOMStable.render(<DelayedStableWrapper />, stableWrapperDiv);
-      stableElement = stableWrapperDiv.firstChild;
-      window.h = ReactPatched.createElement;
-      patchedWrapperDiv = document.createElement('div');
-      patchedComponent = ReactDOMPatched.render(<DelayedPatchedWrapper />, patchedWrapperDiv);
-      patchedElement = patchedWrapperDiv.firstChild;
-      window.h = preact.createElement;
-      preactWrapperDiv = document.createElement('div');
-      preactComponent = preact.render(<DelayedPreactWrapper />, preactWrapperDiv);
-      preactElement = preactWrapperDiv.firstChild;
-      window.h = undefined;
-      renderStep('Fresh, separate render() with defined CE');
-    }, 0);
+    window.h = undefined;
+    window.WrapperComponent = undefined;
 
-  }, 0);
-}
+    stableRoot.innerHTML = stableSsr;
+    patchedRoot.innerHTML = patchedSsr;
+    preactRoot.innerHTML = preactSsr;
+    const stableCE = stableRoot.querySelector(customElement.tagName);
+    const patchedCE = patchedRoot.querySelector(customElement.tagName);
+    const preactCE = preactRoot.querySelector(customElement.tagName);
 
+    function appendUpdate(title) {
+      const preTitleText = customElements.get(customElement.tagName)
+        ? 'CE upgraded<br>'
+        : 'CE not upgraded yet<br>';
+      upgradeTbody.insertAdjacentHTML('beforeend',
+        `<tr>
+          <td>${preTitleText}${title}</td>
+          <td class=stable>attribute: ${JSON.stringify(stableCE.getAttribute('setter'))}<br>property: ${JSON.stringify(stableCE.setter)}</td>
+          <td class=patched>attribute: ${JSON.stringify(patchedCE.getAttribute('setter'))}<br>property: ${JSON.stringify(patchedCE.setter)}</td>
+          <td class=preact>attribute: ${JSON.stringify(preactCE.getAttribute('setter'))}<br>property: ${JSON.stringify(preactCE.setter)}</td>
+        </tr>`);
+    }
 
-document.body.insertAdjacentHTML('beforeend',
-`<h2>Hydration</h2>
-<p>This section runs custom element upgrade at various points in the
-SSR lifecycle and examines what the effect is on the custom element.<br>
-The steps in the 'lifecycle' run here are:<br>
-1. Set innerHTML to SSR output from renderToString<br>
-2. Hydrate<br>
-3. Call forceUpdate on the component passed to hydrate
-</p>`);
+    appendUpdate(`After innerHTML=renderToString, before hydration`);
 
-// 1. SSR
-// 2. Hydration
-// 3. forceUpdate
+    if (step === 1)
+      upgrade();
 
-class MyCustomElementBeforeSsr extends HTMLElement {
-  static tagName = 'my-custom-element-beforessr';
-  get setter() { return this._setter || 'custom element setter default value'; }
-  set setter(newValue) { this._setter = newValue; }
-};
-class MyCustomElementBeforeHydration extends HTMLElement {
-  static tagName = 'my-custom-element-beforehydration';
-  get setter() { return this._setter || 'custom element setter default value'; }
-  set setter(newValue) { this._setter = newValue; }
-};
-class MyCustomElementBeforeForceUpdate extends HTMLElement {
-  static tagName = 'my-custom-element-beforeforceupdate';
-  get setter() { return this._setter || 'custom element setter default value'; }
-  set setter(newValue) { this._setter = newValue; }
-};
-class MyCustomElementAfterForceUpdate extends HTMLElement {
-  static tagName = 'my-custom-element-afterforceupdate';
-  get setter() { return this._setter || 'custom element setter default value'; }
-  set setter(newValue) { this._setter = newValue; }
-};
+    window.h = ReactStable.createElement;
+    window.WrapperComponent = SSRStableComponent;
+    ReactDOMStable.hydrate(eval(ssrjsxstr), stableRoot);
+    window.h = ReactPatched.createElement;
+    window.WrapperComponent = SSRPatchedComponent;
+    ReactDOMPatched.hydrate(eval(ssrjsxstr), patchedRoot);
+    window.h = preact.createElement;
+    window.WrapperComponent = SSRPreactComponent;
+    preact.hydrate(eval(ssrjsxstr), preactRoot);
+    window.h = undefined;
+    window.WrapperComponent = undefined;
 
-runHydrationTest(
-  MyCustomElementBeforeSsr,
-  'Upgrade before innerHTML = renderToString',
-  0);
-runHydrationTest(
-  MyCustomElementBeforeHydration,
-  'Upgrade before hydration',
-  1);
-runHydrationTest(
-  MyCustomElementBeforeForceUpdate,
-  'Upgrade before forceUpdate',
-  2);
-runHydrationTest(
-  MyCustomElementAfterForceUpdate,
-  'Upgrade after forceUpdate',
-  3);
+    appendUpdate(`After hydration, before setState`);
 
-function runHydrationTest(customElement, title, step) {
-  document.body.insertAdjacentHTML('beforeend', `<h4>${title}</h4>`);
-  const upgradeTable = document.createElement('table');
-  document.body.appendChild(upgradeTable);
-  upgradeTable.insertAdjacentHTML('beforeend',
-    `<thead><tr>
-      <td>Step</td>
-      <td>React Output</td>
-      <td>React Patched Output</td>
-      <td>Preact Output</td>
-    </tr></thead>`);
-  const upgradeTbody = document.createElement('tbody');
-  upgradeTable.appendChild(upgradeTbody);
+    if (step === 2)
+      upgrade();
 
-  const stableRoot = document.createElement('div');
-  const patchedRoot = document.createElement('div');
-  const preactRoot = document.createElement('div');
-  function upgrade() {
-    customElements.define(customElement.tagName, customElement);
-    customElements.upgrade(stableRoot);
-    customElements.upgrade(patchedRoot);
-    customElements.upgrade(preactRoot);
+    window.h = ReactStable.createElement;
+    window.stableWrapper.setState({setter: 'new JSX value'});
+    window.stableWrapper.forceUpdate();
+
+    window.h = ReactPatched.createElement;
+    window.patchedWrapper.setState({setter: 'new JSX value'});
+    window.patchedWrapper.forceUpdate();
+
+    window.h = preact.createElement;
+    window.preactWrapper.setState({setter: 'new JSX value'});
+    window.preactWrapper.forceUpdate();
+
+    // setState is async in preact, this setTimeout will wait for it.
+    await setTimeoutPromise();
+
+    window.h = undefined;
+
+    appendUpdate(`After setState`);
+
+    if (step === 3) {
+      upgrade();
+      appendUpdate(`After upgrade after setState`);
+    }
+
+    prettifyTable(upgradeTable);
   }
+})();
 
-  if (step === 0)
-    upgrade();
-
-  const ssrjsxfn = function(){<WrapperComponent><replace-me setter="ssr-value" /></WrapperComponent>};
-  const ssrjsxstr = jsxRemoveFn(ssrjsxfn).replace('replace-me', customElement.tagName);
-  //console.log('jsxstr: ' + jsxstr);
-
-  window.h = ReactStable.createElement;
-  window.WrapperComponent = StableWrapper;
-  const stableSsr = ReactDOMServerStable.renderToString(eval(ssrjsxstr));
-  window.h = ReactPatched.createElement;
-  window.WrapperComponent = PatchedWrapper;
-  const patchedSsr = ReactDOMServerPatched.renderToString(eval(ssrjsxstr));
-  //const patchedSsr = ReactDOMServerPatched.renderToString(<WrapperComponent><my-custom-element-beforessr /></WrapperComponent>);
-  window.h = preact.createElement;
-  window.WrapperComponent = PreactWrapper;
-  const preactSsr = preactRenderToString(eval(ssrjsxstr));
-  window.h = undefined;
-  window.WrapperComponent = undefined;
-
-
-  stableRoot.innerHTML = stableSsr;
-  patchedRoot.innerHTML = patchedSsr;
-  preactRoot.innerHTML = preactSsr;
-  const stableCE = stableRoot.querySelector(customElement.tagName);
-  const patchedCE = patchedRoot.querySelector(customElement.tagName);
-  //patchedCE.removeAttribute('setter');
-  const preactCE = preactRoot.querySelector(customElement.tagName);
-
-  function appendUpdate(title) {
-    const preTitleText = customElements.get(customElement.tagName)
-      ? 'CE upgraded<br>'
-      : 'CE not upgraded yet<br>';
-    upgradeTbody.insertAdjacentHTML('beforeend',
-      `<tr>
-        <td>${preTitleText}${title}</td>
-        <td class=stable>attribute: ${JSON.stringify(stableCE.getAttribute('setter'))}<br>property: ${JSON.stringify(stableCE.setter)}</td>
-        <td class=patched>attribute: ${JSON.stringify(patchedCE.getAttribute('setter'))}<br>property: ${JSON.stringify(patchedCE.setter)}</td>
-        <td class=preact>attribute: ${JSON.stringify(preactCE.getAttribute('setter'))}<br>property: ${JSON.stringify(preactCE.setter)}</td>
-      </tr>`);
-  }
-
-  appendUpdate(`After innerHTML=renderToString, before hydration`);
-
-  if (step === 1)
-    upgrade();
-
-  const hydrationjsxfn = function(){<WrapperComponent><replace-me setter="hydration-value" /></WrapperComponent>};
-  const hydrationjsxstr = jsxRemoveFn(hydrationjsxfn).replace('replace-me', customElement.tagName);
-
-  window.h = ReactStable.createElement;
-  window.WrapperComponent = StableWrapper;
-  ReactDOMStable.hydrate(eval(ssrjsxstr), stableRoot);
-  window.h = ReactPatched.createElement;
-  window.WrapperComponent = PatchedWrapper;
-  ReactDOMPatched.hydrate(eval(ssrjsxstr), patchedRoot);
-  window.h = preact.createElement;
-  window.WrapperComponent = PreactWrapper;
-  preact.hydrate(eval(ssrjsxstr), preactRoot);
-  window.h = undefined;
-  window.WrapperComponent = undefined;
-
-  appendUpdate(`After hydration, before forceUpdate`);
-
-  if (step === 2)
-    upgrade();
-
-  window.h = ReactStable.createElement;
-  stableWrapper.forceUpdate();
-  window.h = ReactPatched.createElement;
-  patchedWrapper.forceUpdate();
-  window.h = preact.createElement;
-  preactWrapper.forceUpdate();
-  window.h = undefined;
-
-  appendUpdate(`After forceUpdate`);
-
-  if (step === 3) {
-    upgrade();
-    appendUpdate(`After upgrade after forceUpdate`);
-  }
-}
-
-setTimeout(() => {
-setTimeout(() => {
-  document.querySelectorAll('tbody').forEach(tbody => {
+function prettifyTable(table) {
+  table.querySelectorAll('tbody').forEach(tbody => {
     tbody.querySelectorAll('tr').forEach(tr => {
       const stable = tr.querySelector('.stable');
       const patched = tr.querySelector('.patched');
@@ -805,5 +862,4 @@ setTimeout(() => {
       }
     });
   });
-}, 0);
-}, 0);
+}
