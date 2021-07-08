@@ -562,19 +562,19 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
   renderStep('Custom element defined');
 
   window.h = ReactStable.createElement;
-  stableComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
+  stableComponent.setState({passprop: 'forceUpdate'});
   stableComponent.forceUpdate();
   if (stableElement.getAttribute('passprop') !== 'forceUpdate') {
     console.error('setState didnt work on ReactStable', stableComponent, stableElement);
   }
   window.h = ReactPatched.createElement;
-  patchedComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
+  patchedComponent.setState({passprop: 'forceUpdate'});
   patchedComponent.forceUpdate();
   if (patchedElement.getAttribute('passprop') !== 'forceUpdate') {
     console.error('setState didnt work on ReactPatched', patchedComponent, patchedElement);
   }
   window.h = preact.createElement;
-  window.delayedPreactWrapper.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
+  window.delayedPreactWrapper.setState({passprop: 'forceUpdate'});
   window.delayedPreactWrapper.forceUpdate();
   window.h = undefined;
 
@@ -815,11 +815,11 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
     appendUpdate('After forceUpdate()');
 
     window.h = ReactStable.createElement;
-    window.stableWrapper.setState({setter: 'new JSX value'});
+    window.stableWrapper.setState({passprop: 'new JSX value'});
     window.h = ReactPatched.createElement;
-    window.patchedWrapper.setState({setter: 'new JSX value'});
+    window.patchedWrapper.setState({passprop: 'new JSX value'});
     window.h = preact.createElement;
-    window.preactWrapper.setState({setter: 'new JSX value'});
+    window.preactWrapper.setState({passprop: 'new JSX value'});
     window.h = undefined;
     // setState is async in preact, this setTimeout will wait for it.
     await setTimeoutPromise();
