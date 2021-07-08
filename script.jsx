@@ -457,7 +457,7 @@ document.body.insertAdjacentHTML('beforeend',
 This section renders custom elements before they are upgraded and checks to see
 how the JSX attribute is applied to the element's attribute and property of the
 same name. Then it upgrades the custom element, logs the values again, then calls
-setState() and forceUpdate() in an attempt to get react/preact to look again, and logs again.
+setState('new JSX value') and forceUpdate() in an attempt to get react/preact to look again, and logs again.
 </p>`);
 
 // 1. Render
@@ -479,7 +479,7 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
       super();
       window.delayedStableWrapper = this;
       this.state = {
-        setter: 'JSX value',
+        setter: 'JSX initial value',
         passprop: 'initial value'
       };
     }
@@ -494,7 +494,7 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
       super();
       window.delayedPatchedWrapper = this;
       this.state = {
-        setter: 'JSX value',
+        setter: 'JSX initial value',
         passprop: 'initial value'
       };
     }
@@ -509,7 +509,7 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
       super();
       window.delayedPreactWrapper = this;
       this.state = {
-        setter: 'JSX value',
+        setter: 'JSX initial value',
         passprop: 'initial value'
       };
     }
@@ -584,7 +584,7 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
   if (preactElement.getAttribute('passprop') !== 'forceUpdate') {
     console.error('setState didnt work on preact', preactElement, window.delayedPreactWrapper);
   }
-  renderStep('After setState() and forceUpdate()');
+  renderStep(`After setState('new JSX value') and forceUpdate()`);
 
   window.h = ReactStable.createElement;
   stableWrapperDiv = document.createElement('div');
@@ -796,33 +796,38 @@ setState() and forceUpdate() in an attempt to get react/preact to look again, an
     window.h = undefined;
     window.WrapperComponent = undefined;
 
+    // throw a setTimeout in here in case hydration causes any sort of side effects
+    await setTimeoutPromise();
+
     appendUpdate(`After hydration, before setState`);
 
     if (step === 2)
       upgrade();
 
     window.h = ReactStable.createElement;
-    window.stableWrapper.setState({setter: 'new JSX value'});
     window.stableWrapper.forceUpdate();
+    window.h = ReactPatched.createElement;
+    window.patchedWrapper.forceUpdate();
+    window.h = preact.createElement;
+    window.preactWrapper.forceUpdate();
+    // throw in a setTimeout in case anything async happens
+    await setTimeoutPromise();
+    appendUpdate('After forceUpdate()');
 
+    window.h = ReactStable.createElement;
+    window.stableWrapper.setState({setter: 'new JSX value'});
     window.h = ReactPatched.createElement;
     window.patchedWrapper.setState({setter: 'new JSX value'});
-    window.patchedWrapper.forceUpdate();
-
     window.h = preact.createElement;
     window.preactWrapper.setState({setter: 'new JSX value'});
-    window.preactWrapper.forceUpdate();
-
+    window.h = undefined;
     // setState is async in preact, this setTimeout will wait for it.
     await setTimeoutPromise();
-
-    window.h = undefined;
-
-    appendUpdate(`After setState`);
+    appendUpdate(`After setState()`);
 
     if (step === 3) {
       upgrade();
-      appendUpdate(`After upgrade after setState`);
+      appendUpdate(`After upgrade after setState()`);
     }
 
     prettifyTable(upgradeTable);
