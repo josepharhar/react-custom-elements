@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<script src="node_modules/preact/dist/preact.umd.js"></script>
+<script src="node_modules/preact-render-to-string/dist/index.js"></script>
+
+<script src="node_modules/react/umd/react.development.js"></script>
+<script src="node_modules/react-dom/umd/react-dom.development.js"></script>
+<script src="node_modules/react-dom/umd/react-dom-server.browser.development.js"></script>
+<script>
+window.ReactStable = window.React;
+window.React = undefined;
+window.ReactDOMStable = window.ReactDOM;
+window.ReactDOM = undefined;
+window.ReactDOMServerStable = window.ReactDOMServer;
+window.ReactDOMServer = undefined;
+</script>
+
+<script src="node_modules/react-patched/umd/react.development.js"></script>
+<script src="node_modules/react-dom-patched/umd/react-dom.development.js"></script>
+<script src="node_modules/react-dom-patched/umd/react-dom-server.browser.development.js"></script>
+<script>
+window.ReactPatched = window.React;
+window.React = undefined;
+window.ReactDOMPatched = window.ReactDOM;
+window.ReactDOM = undefined;
+window.ReactDOMServerPatched = window.ReactDOMServer;
+window.ReactDOMServer = undefined;
+</script>
+
+<style>
+table, td {
+  border: 1px solid #333;
+}
+thead, tfoot {
+  background-color: #333;
+  color: #fff;
+}
+.code, tbody > tr > td:not(:first-child) {
+  /*background-color: lightgray;*/
+  white-space: pre;
+  font-family: monospace;
+}
+.warning {
+  background-color: rgb(255,255,102);
+}
+.error {
+  background-color: #ff7777;
+}
+.good {
+  background-color: lightgray;
+}
+h2, h3, h4 {
+  margin-bottom: 0;
+}
+</style>
+
+<body>
+<h1>React and Preact Custom Element Testing</h1>
+<p><span class=warning>Yellow</span> rows show where my patch is different from one of React or Preact,<br>and <span class=error>red</span> rows show where my patch is different from both React and Preact.</p>
+<script src="build/script.js"></script>
