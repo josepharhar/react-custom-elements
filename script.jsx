@@ -468,10 +468,19 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
   const table = document.createElement('table');
   document.body.appendChild(table);
 
+  document.body.insertAdjacentHTML('beforeend',
+    `<p>again with an object instead of a string, just to see if it's different:</p>`);
+  const objectTable = document.createElement('table');
+  document.body.appendChild(objectTable);
+
   class MyCustomElementDelayedDefine extends HTMLElement {
     static tagName = 'my-custom-element-delayed-define';
+
     get setter() { return this._setter || 'CE default getter'; }
     set setter(newValue) { this._setter = newValue; }
+
+    get objectsetter() { return this._objectsetter || 'CE default getter'; }
+    set objectsetter(newvalue) { this._objectsetter = newvalue; }
   };
 
   class DelayedStableWrapper extends ReactStable.Component {
@@ -480,13 +489,15 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
       window.delayedStableWrapper = this;
       this.state = {
         setter: 'JSX initial value',
-        passprop: 'initial value'
+        passprop: 'initial value',
+        objectsetter: {myprop: 'myvalue'}
       };
     }
     render() {
       return <my-custom-element-delayed-define
         setter={this.state.setter}
-        passprop={this.state.passprop} />;
+        passprop={this.state.passprop}
+        objectsetter={this.state.objectsetter} />;
     }
   };
   class DelayedPatchedWrapper extends ReactPatched.Component {
@@ -495,13 +506,15 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
       window.delayedPatchedWrapper = this;
       this.state = {
         setter: 'JSX initial value',
-        passprop: 'initial value'
+        passprop: 'initial value',
+        objectsetter: {myprop: 'myvalue'}
       };
     }
     render() {
       return <my-custom-element-delayed-define
         setter={this.state.setter}
-        passprop={this.state.passprop} />;
+        passprop={this.state.passprop}
+        objectsetter={this.state.objectsetter} />;
     }
   };
   class DelayedPreactWrapper extends preact.Component {
@@ -510,13 +523,15 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
       window.delayedPreactWrapper = this;
       this.state = {
         setter: 'JSX initial value',
-        passprop: 'initial value'
+        passprop: 'initial value',
+        objectsetter: {myprop: 'myvalue'}
       };
     }
     render() {
       return preact.createElement('my-custom-element-delayed-define', {
         setter: this.state.setter,
-        passprop: this.state.passprop
+        passprop: this.state.passprop,
+        objectsetter: this.state.objectsetter
       });
     }
   };
@@ -542,6 +557,13 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
       <td>React Patched Output</td>
       <td>Preact Output</td>
     </tr></thead>`);
+  objectTable.insertAdjacentHTML('beforeend',
+    `<thead><tr>
+      <td>Step</td>
+      <td>React Output</td>
+      <td>React Patched Output</td>
+      <td>Preact Output</td>
+    </tr></thead>`);
 
   function renderStep(description) {
     table.insertAdjacentHTML('beforeend',
@@ -550,6 +572,13 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
         <td class=stable>attribute: ${JSON.stringify(stableElement.getAttribute('setter'))}<br>property: ${JSON.stringify(stableElement.setter)}</td>
         <td class=patched>attribute: ${JSON.stringify(patchedElement.getAttribute('setter'))}<br>property: ${JSON.stringify(patchedElement.setter)}</td>
         <td class=preact>attribute: ${JSON.stringify(preactElement.getAttribute('setter'))}<br>property: ${JSON.stringify(preactElement.setter)}</td>
+      </tr>`);
+    objectTable.insertAdjacentHTML('beforeend',
+      `<tr>
+        <td>${description}</td>
+        <td class=stable>attribute: ${JSON.stringify(stableElement.getAttribute('objectsetter'))}<br>property: ${JSON.stringify(stableElement.objectsetter)}</td>
+        <td class=patched>attribute: ${JSON.stringify(patchedElement.getAttribute('objectsetter'))}<br>property: ${JSON.stringify(patchedElement.objectsetter)}</td>
+        <td class=preact>attribute: ${JSON.stringify(preactElement.getAttribute('objectsetter'))}<br>property: ${JSON.stringify(preactElement.objectsetter)}</td>
       </tr>`);
   }
 
@@ -562,19 +591,19 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
   renderStep('Custom element defined');
 
   window.h = ReactStable.createElement;
-  stableComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
+  stableComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value', objectsetter: {newprop: 'newvalue'}});
   stableComponent.forceUpdate();
   if (stableElement.getAttribute('passprop') !== 'forceUpdate') {
     console.error('setState didnt work on ReactStable', stableComponent, stableElement);
   }
   window.h = ReactPatched.createElement;
-  patchedComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
+  patchedComponent.setState({passprop: 'forceUpdate', setter: 'new JSX value', objectsetter: {newprop: 'newvalue'}});
   patchedComponent.forceUpdate();
   if (patchedElement.getAttribute('passprop') !== 'forceUpdate') {
     console.error('setState didnt work on ReactPatched', patchedComponent, patchedElement);
   }
   window.h = preact.createElement;
-  window.delayedPreactWrapper.setState({passprop: 'forceUpdate', setter: 'new JSX value'});
+  window.delayedPreactWrapper.setState({passprop: 'forceUpdate', setter: 'new JSX value', objectsetter: {newprop: 'newvalue'}});
   window.delayedPreactWrapper.forceUpdate();
   window.h = undefined;
 
@@ -602,6 +631,7 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
   renderStep('Fresh, separate render() with defined CE');
 
   prettifyTable(table);
+  prettifyTable(objectTable);
 })();
 
 
