@@ -377,6 +377,18 @@ addRenderToStringTest(
   function(){<my-custom-element attr={true} />});
 
 addRenderToStringTest(
+  `<my-custom-element attr={"true"} />`,
+  function(){<my-custom-element attr={"true"} />});
+
+addRenderToStringTest(
+  `<my-custom-element attr={false} />`,
+  function(){<my-custom-element attr={false} />});
+
+addRenderToStringTest(
+  `<my-custom-element attr={"false"} />`,
+  function(){<my-custom-element attr={"false"} />});
+
+addRenderToStringTest(
   `<div attr={true} />`,
   function(){<div attr={true} />});
 
