@@ -59,11 +59,11 @@ function renderAllFrameworks(jsxfn) {
 
   window.h = ReactStable.createElement;
   const reactStable = document.createElement('div');
-  ReactDOMStable.render(eval(str), reactStable);
+  ReactDOMStable.createRoot(reactStable).render(eval(str));
 
   window.h = ReactPatched.createElement;
   const reactPatched = document.createElement('div');
-  ReactDOMPatched.render(eval(str), reactPatched);
+  ReactDOMPatched.createRoot(reactPatched).render(eval(str));
 
   window.h = preact.createElement;
   const preactDiv = document.createElement('div');

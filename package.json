@@ -10,8 +10,8 @@
     "@babel/preset-react": "^7.12.10",
     "preact": "^10.5.9",
     "preact-render-to-string": "^5.1.12",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
+    "react": "^18.0.0-alpha-bd255700d-20210816",
+    "react-dom": "^18.0.0-alpha-bd255700d-20210816",
     "react-dom-patched": "file:~/react/build/node_modules/react-dom",
     "react-patched": "file:~/react/build/node_modules/react"
   }
