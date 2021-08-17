@@ -1,5 +1,7 @@
 /** @jsx h */
 
+(async () => {
+
 async function setTimeoutPromise() {
   return new Promise(resolve => setTimeout(resolve, 0));
 }
@@ -54,7 +56,7 @@ function jsxRemoveFn(jsxfn) {
   return jsxfn.toString().replace('function () {', '').replace(/}$/, '');
 }
 
-function renderAllFrameworks(jsxfn) {
+async function renderAllFrameworks(jsxfn) {
   const str = jsxRemoveFn(jsxfn);
 
   window.h = ReactStable.createElement;
@@ -70,6 +72,8 @@ function renderAllFrameworks(jsxfn) {
   preact.render(eval(str), preactDiv);
 
   window.h = undefined;
+
+  await new Promise(resolve => requestIdleCallback(resolve));
 
   return [
     reactStable.firstChild,
@@ -103,8 +107,8 @@ function renderToStringAllFrameworks(jsxfn) {
   ];
 }
 
-function renderPropAttr(jsxfn, jsxstr, propName) {
-  const [stable, patched, preact] = renderAllFrameworks(jsxfn);
+async function renderPropAttr(jsxfn, jsxstr, propName) {
+  const [stable, patched, preact] = await renderAllFrameworks(jsxfn);
 
   const rowOne = document.createElement('tr');
   tbody.appendChild(rowOne);
@@ -127,90 +131,90 @@ function renderPropAttr(jsxfn, jsxstr, propName) {
   rowTwo.querySelector('#insert').textContent = jsxstr;
 }
 
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element setter={true} />},
   `<my-custom-element setter={true} />`,
   'setter');
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element nosetter={true} />},
   `<my-custom-element nosetter={true} />`,
   'nosetter');
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element setter="string" />},
   `<my-custom-element setter="string" />`,
   'setter');
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element nosetter="string" />},
   `<my-custom-element nosetter="string" />`,
   'nosetter');
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element setter={['one', 'two']} />},
   `<my-custom-element setter={['one', 'two']} />`,
   'setter');
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element nosetter={['one', 'two']} />},
   `<my-custom-element nosetter={['one', 'two']} />`,
   'nosetter');
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element setter={{property: 'value'}} />},
   `<my-custom-element setter={{property: 'value'}} />`,
   'setter');
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element nosetter={{property: 'value'}} />},
   `<my-custom-element nosetter={{property: 'value'}} />`,
   'nosetter');
 
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element className="foo" />},
   `<my-custom-element className="foo" />`,
   'className');
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element className="foo" />},
   `<my-custom-element className="foo" />`,
   'class');
 
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element class="foo" />},
   `<my-custom-element class="foo" />`,
   'className');
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element class="foo" />},
   `<my-custom-element class="foo" />`,
   'class');
 
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element htmlFor="foo" />},
   `<my-custom-element htmlFor="foo" />`,
   'htmlFor');
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element htmlFor="foo" />},
   `<my-custom-element htmlFor="foo" />`,
   'for');
 
-renderPropAttr(
+await renderPropAttr(
   function(){<div htmlFor="foo" />},
   `<div htmlFor="foo" />`,
   'htmlFor');
-renderPropAttr(
+await renderPropAttr(
   function(){<div htmlFor="foo" />},
   `<div htmlFor="foo" />`,
   'for');
 
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element children="foo" />},
   `<my-custom-element children="foo" />`,
   'children');
 
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element key="foo" />},
   `<my-custom-element key="foo" />`,
   'key');
 
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element onsetter="foo" />},
   `<my-custom-element onsetter="foo" />`,
   'onsetter');
-renderPropAttr(
+await renderPropAttr(
   function(){<my-custom-element onnosetter="foo" />},
   `<my-custom-element onnosetter="foo" />`,
   'onnosetter');
@@ -234,7 +238,7 @@ prettifyTable(table);
   const eventTbody = document.createElement('tbody');
   eventTable.appendChild(eventTbody);
 
-  const [stable, patched, preact] = renderAllFrameworks(function(){<my-custom-element
+  const [stable, patched, preact] = await renderAllFrameworks(function(){<my-custom-element
     oncustomevent={event => event.target.oncustomeventfired = true}
     oncustomeventCapture={event => event.target.oncustomeventcapturefired = true}
     onClick={event => event.target.onclickfired = true}
@@ -910,3 +914,5 @@ function prettifyTable(table) {
     });
   });
 }
+
+})();
