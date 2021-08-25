@@ -6,6 +6,25 @@ async function setTimeoutPromise() {
   return new Promise(resolve => setTimeout(resolve, 0));
 }
 
+async function streamToString(stream) {
+  const reader = stream.getReader();
+  let outerDone = false;
+  let outerValue = '';
+  while (!outerDone) {
+    const {done, value} = await reader.read();
+    if (done) {
+      outerDone = done;
+    } else {
+      if (typeof value === 'string') {
+        outerValue += value;
+      } else {
+        outerValue += new TextDecoder().decode(value);
+      }
+    }
+  }
+  return outerValue;
+}
+
 document.body.insertAdjacentHTML('beforeend',
   `<h2>Properties and Attributes</h2>
   <p></p>
@@ -82,14 +101,14 @@ async function renderAllFrameworks(jsxfn) {
   ];
 }
 
-function renderToStringAllFrameworks(jsxfn) {
+async function renderToStringAllFrameworks(jsxfn) {
   const str = jsxRemoveFn(jsxfn);
 
   window.h = ReactStable.createElement;
-  const reactStable = ReactDOMServerStable.renderToString(eval(str));
+  const reactStable = await streamToString(ReactDOMServerStable.renderToReadableStream(eval(str)));
 
   window.h = ReactPatched.createElement;
-  const reactPatched = ReactDOMServerPatched.renderToString(eval(str));
+  const reactPatched = await streamToString(ReactDOMServerPatched.renderToReadableStream(eval(str)));
 
   window.h = preact.createElement;
   const preactStr = preactRenderToString(eval(str));
@@ -312,10 +331,10 @@ renderToStringTable.insertAdjacentHTML('beforeend',
 const renderToStringTbody = document.createElement('tbody');
 renderToStringTable.appendChild(renderToStringTbody);
 
-function addRenderToStringTest(jsxstr, jsxfn) {
+async function addRenderToStringTest(jsxstr, jsxfn) {
   const originalConsoleError = console.error;
   console.error = function() {};
-  const [stable, patched, preact] = renderToStringAllFrameworks(jsxfn);
+  const [stable, patched, preact] = await renderToStringAllFrameworks(jsxfn);
   console.error = originalConsoleError;
 
   const tr = document.createElement('tr');
@@ -344,122 +363,122 @@ function addRenderToStringTest(jsxstr, jsxfn) {
   preacttd.classList.add('code', 'preact');
 }
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element htmlFor="foo" />`,
   function(){<my-custom-element htmlFor="foo" />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<div htmlFor="foo" />`,
   function(){<div htmlFor="foo" />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element for="foo" />`,
   function(){<my-custom-element for="foo" />});
 
-/*addRenderToStringTest('renderToString for div',
+/*await addRenderToStringTest('renderToString for div',
   `<div for="foo" />`,
   function(){<div for="foo" />});*/
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element className="foo" />`,
   function(){<my-custom-element className="foo" />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<div className="foo" />`,
   function(){<div className="foo" />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element class="foo" />`,
   function(){<my-custom-element class="foo" />});
 
-/*addRenderToStringTest('renderToString class div',
+/*await addRenderToStringTest('renderToString class div',
   `<div class="foo" />`,
   function(){<div class="foo" />});*/
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element attr={true} />`,
   function(){<my-custom-element attr={true} />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element attr={"true"} />`,
   function(){<my-custom-element attr={"true"} />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element attr={false} />`,
   function(){<my-custom-element attr={false} />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element attr={"false"} />`,
   function(){<my-custom-element attr={"false"} />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<div attr={true} />`,
   function(){<div attr={true} />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element attr={['one', 'two']} />`,
   function(){<my-custom-element attr={['one', 'two']} />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<div attr={['one', 'two']} />`,
   function(){<div attr={['one', 'two']} />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element attr={{property: 'value'}} />`,
   function(){<my-custom-element attr={{property: 'value'}} />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<div attr={{property: 'value'}} />`,
   function(){<div attr={{property: 'value'}} />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<div onClick="foo" />`,
   function(){<div onClick="foo" />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<div onClickCapture="foo" />`,
   function(){<div onClickCapture="foo" />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<div onclick="foo" />`,
   function(){<div onclick="foo" />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<div onclickcapture="foo" />`,
   function(){<div onclickcapture="foo" />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<div onClick={() => console.log('foo')} />`,
   function(){<div onClick={() => console.log('foo')} />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<div onCustomEvent={() => console.log('foo')} />`,
   function(){<div onCustomEvent={() => console.log('foo')} />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element onClick="foo" />`,
   function(){<my-custom-element onClick="foo" />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element onClickCapture="foo" />`,
   function(){<my-custom-element onClickCapture="foo" />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element onclick="foo" />`,
   function(){<my-custom-element onclick="foo" />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element onclickcapture="foo" />`,
   function(){<my-custom-element onclickcapture="foo" />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element onClick={() => console.log('foo')} />`,
   function(){<my-custom-element onClick={() => console.log('foo')} />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element onCustomEvent={() => console.log('foo')} />`,
   function(){<my-custom-element onCustomEvent={() => console.log('foo')} />});
 
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element onCustomEvent="foo" />`,
   function(){<my-custom-element onCustomEvent="foo" />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element onCustomEventCapture="foo" />`,
   function(){<my-custom-element onCustomEventCapture="foo" />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element oncustomevent="foo" />`,
   function(){<my-custom-element oncustomevent="foo" />});
-addRenderToStringTest(
+await addRenderToStringTest(
   `<my-custom-element oncustomeventcapture="foo" />`,
   function(){<my-custom-element oncustomeventcapture="foo" />});
 
@@ -792,11 +811,11 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
 
     window.h = ReactStable.createElement;
     window.WrapperComponent = SSRStableComponent;
-    const stableSsr = ReactDOMServerStable.renderToString(eval(ssrjsxstr));
+    const stableSsr = await streamToString(ReactDOMServerStable.renderToReadableStream(eval(ssrjsxstr)));
 
     window.h = ReactPatched.createElement;
     window.WrapperComponent = SSRPatchedComponent;
-    const patchedSsr = ReactDOMServerPatched.renderToString(eval(ssrjsxstr));
+    const patchedSsr = await streamToString(ReactDOMServerPatched.renderToReadableStream(eval(ssrjsxstr)));
 
     window.h = preact.createElement;
     window.WrapperComponent = SSRPreactComponent;
