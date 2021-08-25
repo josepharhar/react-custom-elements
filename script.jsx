@@ -73,7 +73,7 @@ async function renderAllFrameworks(jsxfn) {
 
   window.h = undefined;
 
-  await new Promise(resolve => requestIdleCallback(resolve));
+  await setTimeoutPromise();
 
   return [
     reactStable.firstChild,
