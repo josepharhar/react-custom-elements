@@ -1,9 +1,19 @@
-/** @jsx h */
+/** @jsx createElementReplaceMe */
 
 (async () => {
 
 async function setTimeoutPromise() {
   return new Promise(resolve => setTimeout(resolve, 0));
+}
+
+function replaceJsxStable(str) {
+  return str.replaceAll('createElementReplaceMe', 'ReactStable.createElement');
+}
+function replaceJsxPatched(str) {
+  return str.replaceAll('createElementReplaceMe', 'ReactPatched.createElement');
+}
+function replaceJsxPreact(str) {
+  return str.replaceAll('createElementReplaceMe', 'preact.createElement');
 }
 
 async function streamToString(stream) {
@@ -78,19 +88,14 @@ function jsxRemoveFn(jsxfn) {
 async function renderAllFrameworks(jsxfn) {
   const str = jsxRemoveFn(jsxfn);
 
-  window.h = ReactStable.createElement;
   const reactStable = document.createElement('div');
-  ReactDOMStable.createRoot(reactStable).render(eval(str));
+  ReactDOMStable.createRoot(reactStable).render(eval(replaceJsxStable(str)));
 
-  window.h = ReactPatched.createElement;
   const reactPatched = document.createElement('div');
-  ReactDOMPatched.createRoot(reactPatched).render(eval(str));
+  ReactDOMPatched.createRoot(reactPatched).render(eval(replaceJsxPatched(str)));
 
-  window.h = preact.createElement;
   const preactDiv = document.createElement('div');
-  preact.render(eval(str), preactDiv);
-
-  window.h = undefined;
+  preact.render(eval(replaceJsxPreact(str)), preactDiv);
 
   await setTimeoutPromise();
 
@@ -104,16 +109,11 @@ async function renderAllFrameworks(jsxfn) {
 async function renderToStringAllFrameworks(jsxfn) {
   const str = jsxRemoveFn(jsxfn);
 
-  window.h = ReactStable.createElement;
-  const reactStable = await streamToString(ReactDOMServerStable.renderToReadableStream(eval(str)));
+  const reactStable = await streamToString(ReactDOMServerStable.renderToReadableStream(eval(replaceJsxStable(str))));
 
-  window.h = ReactPatched.createElement;
-  const reactPatched = await streamToString(ReactDOMServerPatched.renderToReadableStream(eval(str)));
+  const reactPatched = await streamToString(ReactDOMServerPatched.renderToReadableStream(eval(replaceJsxPatched(str))));
 
-  window.h = preact.createElement;
-  const preactStr = preactRenderToString(eval(str));
-
-  window.h = undefined;
+  const preactStr = preactRenderToString(eval(replaceJsxPreact(str)));
 
   function removeReactRoot(str) {
     return str.replace(` data-reactroot=""`, '');
