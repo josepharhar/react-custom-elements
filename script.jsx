@@ -3,7 +3,22 @@
 (async () => {
 
 async function setTimeoutPromise() {
-  return new Promise(resolve => setTimeout(resolve, 0));
+  /*return Promise.all([
+    new Promise(resolve => setTimeout(resolve, 0)),
+    new Promise(resolve => requestIdleCallback(resolve))]);*/
+  return new Promise(resolve => {
+    requestIdleCallback(() => {
+    requestAnimationFrame(() => {
+    setTimeout(() => {
+    setTimeout(() => {
+    setTimeout(() => {
+      setTimeout(resolve, 0);
+    }, 0);
+    }, 0);
+    }, 0);
+    });
+    });
+  });
 }
 
 async function streamToString(stream) {
@@ -573,12 +588,21 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
 
   window.h = ReactStable.createElement;
   let stableWrapperDiv = document.createElement('div');
-  let stableComponent = ReactDOMStable.render(<DelayedStableWrapper />, stableWrapperDiv);
+  let stableComponent = ReactDOMStable.createRoot(stableWrapperDiv)
+    .render(<DelayedStableWrapper />);
+  await setTimeoutPromise();
   let stableElement = stableWrapperDiv.firstChild;
+  if (stableElement != stableWrapperDiv.querySelector('my-custom-element-delayed-define')) {
+    throw new Error('asdf');
+  }
+
   window.h = ReactPatched.createElement;
   let patchedWrapperDiv = document.createElement('div');
-  let patchedComponent = ReactDOMPatched.render(<DelayedPatchedWrapper />, patchedWrapperDiv);
+  let patchedComponent = ReactDOMPatched.createRoot(patchedWrapperDiv)
+    .render(<DelayedPatchedWrapper />);
+  await setTimeoutPromise();
   let patchedElement = patchedWrapperDiv.firstChild;
+
   window.h = preact.createElement;
   let preactWrapperDiv = document.createElement('div');
   let preactComponent = preact.render(<DelayedPreactWrapper />, preactWrapperDiv);
