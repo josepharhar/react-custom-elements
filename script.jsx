@@ -499,7 +499,7 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
 // 2. Upgrade
 // 3. Render again...? Or just compare with a regular render after upgrade?
 
-(async () => {
+await (async () => {
   const table = document.createElement('table');
   document.body.appendChild(table);
 
@@ -670,7 +670,7 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
 })();
 
 
-(async () => {
+await (async () => {
   document.body.insertAdjacentHTML('beforeend',
   `<h2>Hydration</h2>
   <p>This section runs custom element upgrade at various points in the
@@ -899,6 +899,144 @@ setState('new JSX value') and forceUpdate() in an attempt to get react/preact to
   }
 })();
 
+await (async () => {
+  document.body.insertAdjacentHTML('beforeend',
+  `<h2>Assignment to boolean properties</h2>
+  <p>This section renders various things into custom elements which have
+  property getters that return booleans.</p>`);
+  const table = document.createElement('table');
+  document.body.appendChild(table);
+  table.innerHTML = `
+  <thead>
+    <tr>
+      <td>assignment</td>
+      <td>React Output</td>
+      <td>React Patched Output</td>
+      <td>Preact Output</td>
+    </tr>
+  </thead>`;
+  const tbody = document.createElement('tbody');
+  table.appendChild(tbody);
+
+  class CustomElementBoolean extends HTMLElement {
+    constructor() {
+      super();
+      this.foo_ = true;
+    }
+    get foo() {
+      return this.foo_;
+    }
+    set foo(newValue) {
+      this.foo_ = newValue;
+    }
+  }
+  customElements.define('x-boolean', CustomElementBoolean);
+
+  async function assignTest(assignValue) {
+    const row = document.createElement('tr');
+    tbody.appendChild(row);
+    row.insertAdjacentHTML('beforeend', `<td>${JSON.stringify(assignValue)}</td>`);
+
+    const stableRoot = document.createElement('div');
+    ReactDOMStable.createRoot(stableRoot).render(
+      ReactStable.createElement('x-boolean', {foo: assignValue}));
+    await setTimeoutPromise();
+    const stableElement = stableRoot.querySelector('x-boolean');
+    row.insertAdjacentHTML('beforeend', `<td class=stable>${JSON.stringify(stableElement.foo)}</td>`);
+
+    const patchedRoot = document.createElement('div');
+    ReactDOMPatched.createRoot(patchedRoot).render(
+      ReactPatched.createElement('x-boolean', {foo: assignValue}));
+    await setTimeoutPromise();
+    const patchedElement = patchedRoot.querySelector('x-boolean');
+    row.insertAdjacentHTML('beforeend', `<td class=patched>${JSON.stringify(patchedElement.foo)}</td>`);
+
+    const preactRoot = document.createElement('div');
+    preact.render(preact.createElement('x-boolean', {foo: assignValue}), preactRoot);
+    const preactElement = preactRoot.querySelector('x-boolean');
+    row.insertAdjacentHTML('beforeend', `<td class=preact>${JSON.stringify(preactElement.foo)}</td>`);
+  };
+
+  await assignTest(true);
+  await assignTest(false);
+  await assignTest('foo');
+  await assignTest(null);
+  await assignTest(5);
+
+  await setTimeoutPromise();
+  prettifyTable(table);
+})();
+
+await (async () => {
+  document.body.insertAdjacentHTML('beforeend',
+    `<p>This one renders a sequence of values into the same custom element.
+    One createRoot(), multiple render()s.</p>`);
+  const table = document.createElement('table');
+  table.insertAdjacentHTML('beforeend',
+    `<thead>
+      <tr>
+        <td>next assigned value</td>
+        <td>React Stable</td>
+        <td>React Patched</td>
+        <td>Preact</td>
+      </tr>
+    </thead`);
+  document.body.appendChild(table);
+  const tbody = document.createElement('tbody');
+  table.appendChild(tbody);
+
+  const stableDiv = document.createElement('div');
+  const stableRoot = ReactDOMStable.createRoot(stableDiv);
+  stableRoot.render(ReactStable.createElement('x-boolean'));
+  await setTimeoutPromise();
+  const stableElement = stableDiv.querySelector('x-boolean');
+
+  const patchedDiv = document.createElement('div');
+  const patchedRoot = ReactDOMPatched.createRoot(patchedDiv);
+  patchedRoot.render(ReactPatched.createElement('x-boolean'));
+  await setTimeoutPromise();
+  const patchedElement = patchedDiv.querySelector('x-boolean');
+
+  const preactDiv = document.createElement('div');
+  preact.render(preact.createElement('x-boolean', {foo: 'foo'}), preactDiv);
+  const preactElement = preactDiv.querySelector('x-boolean');
+
+  async function printValues(newValue) {
+    const row = document.createElement('tr');
+    tbody.appendChild(row);
+
+    row.insertAdjacentHTML('beforeend',
+      `<td>${JSON.stringify(newValue)}</td>`);
+
+    stableRoot.render(ReactStable.createElement('x-boolean', {foo: newValue}));
+    await setTimeoutPromise();
+    row.insertAdjacentHTML('beforeend',
+      `<td class=stable>${JSON.stringify(stableElement.foo)}</td>`);
+
+    patchedRoot.render(ReactPatched.createElement('x-boolean', {foo: newValue}));
+    await setTimeoutPromise();
+    if (patchedDiv.querySelector('x-boolean') !== patchedElement)
+      throw new Error('what');
+    row.insertAdjacentHTML('beforeend',
+      `<td class=patched>${JSON.stringify(patchedElement.foo)}</td>`);
+
+    preact.render(preact.createElement('x-boolean', {foo: newValue}), preactDiv);
+    row.insertAdjacentHTML('beforeend',
+      `<td class=preact>${JSON.stringify(preactElement.foo)}</td>`);
+  }
+
+  await printValues(false);
+  await printValues('foo');
+  await printValues(true);
+  await printValues('foo');
+  await printValues(true);
+  await printValues(null);
+  await printValues(false);
+  await printValues(null);
+
+  prettifyTable(table);
+})();
+
 function prettifyTable(table) {
   table.querySelectorAll('tbody').forEach(tbody => {
     tbody.querySelectorAll('tr').forEach(tr => {
@@ -906,7 +1044,7 @@ function prettifyTable(table) {
       const patched = tr.querySelector('.patched');
       const preact = tr.querySelector('.preact');
       if (!stable || !patched || !preact) {
-        console.log('bad row:', tr);
+        console.log('bad row:', tr, stable, patched, preact);
         return;
       }
 
