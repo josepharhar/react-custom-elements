@@ -35,4 +35,5 @@ git checkout -b ghpages
 git remote add origin git@github.com:josepharhar/react-custom-elements
 git push -f origin ghpages
 
+cd ..
 rm -rf deploy
