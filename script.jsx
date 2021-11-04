@@ -238,6 +238,11 @@ await renderPropAttr(
   `<my-custom-element onnosetter="foo" />`,
   'onnosetter');
 
+await renderPropAttr(
+  function(){<my-custom-element setter={null} />},
+  `<my-custom-element setter={null} />`,
+  'setter');
+
 prettifyTable(table);
 
 
@@ -1032,6 +1037,8 @@ await (async () => {
   await printValues(true);
   await printValues(null);
   await printValues(false);
+  await printValues(null);
+  await printValues('foo');
   await printValues(null);
 
   prettifyTable(table);
