@@ -159,6 +159,14 @@ await renderPropAttr(
   `<my-custom-element nosetter={true} />`,
   'nosetter');
 await renderPropAttr(
+  function(){<my-custom-element setter={false} />},
+  `<my-custom-element setter={false} />`,
+  'setter');
+await renderPropAttr(
+  function(){<my-custom-element nosetter={false} />},
+  `<my-custom-element nosetter={false} />`,
+  'nosetter');
+await renderPropAttr(
   function(){<my-custom-element setter="string" />},
   `<my-custom-element setter="string" />`,
   'setter');
