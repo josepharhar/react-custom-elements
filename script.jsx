@@ -7,7 +7,7 @@ async function setTimeoutPromise() {
 }
 
 async function streamToString(stream) {
-  const reader = stream.getReader();
+  const reader = (await stream).getReader();
   let outerDone = false;
   let outerValue = '';
   while (!outerDone) {
