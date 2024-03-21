@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<script src="node_modules/react-patched/umd/react.development.js"></script>
+<script src="node_modules/react-dom-patched/umd/react-dom.development.js"></script>
+<script src="node_modules/react-dom-patched/umd/react-dom-server.browser.development.js"></script>
+
+<body>
+<script>
+  const container = document.createElement('div');
+    document.body.appendChild(container);
+    ReactDOM.render(
+        React.createElement('my-custom-element', {
+            foo: 'bar',
+            onClick: () => { console.log('JSX onclick handler'); debugger },
+            oncustomevent: () => { console.log('JSX oncustomevent handler'); debugger },
+            onChange: e => {
+              console.log('JSX change handler'
+                  + '\n  eventPhase: ' + e.nativeEvent.eventPhase
+                  + '\n  currentTarget: ' + e.nativeEvent.currentTarget
+                  + '\n', e);
+                debugger;
+            }
+          }), container);
+
+    const customElement = container.querySelector('my-custom-element');
+    /*customElement.addEventListener('change', () => console.log('manual onchange handler'));
+    customElement.dispatchEvent(new Event('change'));
+    customElement.dispatchEvent(new Event('customevent'));
+
+    ReactDOM.render(React.createElement('my-custom-element', {}), container);
+
+    customElement.dispatchEvent(new Event('change'));
+    customElement.dispatchEvent(new Event('customevent'));*/
+
+    ['change', 'customevent', 'click'].forEach(event => {
+      const button = document.createElement('button');
+      button.onclick = () => {
+        customElement.dispatchEvent(new Event(event));
+      };
+      button.textContent = `fire ${event} event`;
+      const div = document.createElement('div');
+      div.appendChild(button);
+      document.body.appendChild(div);
+    });
+
+
+    /*const regularDiv = document.createElement('div');
+    document.body.appendChild(regularDiv);
+    const regularButton = document.createElement('button');
+    regularDiv.appendChild(regularButton);
+    regularButton.textContent = 'fire change event on an input element';
+
+    const container2 = document.createElement('div');
+    regularDiv.appendChild(container2);
+    ReactDOM.render(
+        React.createElement('input', {
+            onChange: () => */
+</script>
+</body>
